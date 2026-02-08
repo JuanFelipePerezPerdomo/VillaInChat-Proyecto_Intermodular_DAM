@@ -1,7 +1,9 @@
 import { Input } from "@/src/components/ui";
 import { supabase } from "@/src/lib/supabase";
+import { Spacing, Typography } from "@/src/themes";
+import { router } from "expo-router";
 import { useState } from "react";
-import { Button, KeyboardAvoidingView, Text, View } from "react-native";
+import { Button, KeyboardAvoidingView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -85,14 +87,58 @@ export default function SignIn() {
                     </View>
                 )}
             />
-
             <Button
                 title="Iniciar Sesion"
                 onPress={handleSubmit(onSubmit)}
                 disabled={loading}
             />
+             <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                    ¿No tienes una cuenta?{' '}
+                    <TouchableOpacity onPress={() => router.push('/SignUp')}>
+                        <Text style={styles.linkText}>Regístrate</Text>
+                    </TouchableOpacity>
+                    </Text>
+                </View>
         </KeyboardAvoidingView>
     );
 }
 
 // aqui tiene que ir un const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    card: {
+        marginBottom: Spacing.xl,
+    },
+    cardTitle: {
+        ...Typography.h3,
+        marginBottom: Spacing.lg,
+    },
+    form: {
+        gap: Spacing.lg,
+    },
+    errorText: {
+    color: '#dc2626',
+    textAlign: 'center',
+    fontFamily: 'Roboto',
+    },
+    errorMessage: {
+        color: '#dc2626',
+        fontSize: 14,
+        fontFamily: 'Roboto',
+    },
+    footer: {
+        padding: 5,
+        alignItems: 'center',
+    },
+    footerText: {
+        fontFamily: 'Roboto',
+        color: '#666',
+    },
+    linkText: {
+        color: '#6366f1',
+        fontFamily: 'RobotoBold',
+    },
+});

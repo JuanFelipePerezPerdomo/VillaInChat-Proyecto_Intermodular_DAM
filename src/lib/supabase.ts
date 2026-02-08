@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createClient } from "@supabase/supabase-js";
+import { Platform } from "react-native";
 
 const customStorage = {
   getItem: async (key: string) => {
@@ -28,10 +28,9 @@ export const supabase = createClient(
   process.env.EXPO_PUBLIC_SUPABASE_KEY!,
   {
     auth: {
-      storage: customStorage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,
-    },
-  }
-);
+        storage: customStorage,
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+    }
+})
