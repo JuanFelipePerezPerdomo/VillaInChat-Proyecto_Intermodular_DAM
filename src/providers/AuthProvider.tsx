@@ -44,7 +44,7 @@ export default function AuthProvider(props: Props){
             setLoading(false);
 
             if(session){
-                router.replace('/');
+                router.replace('/home');
             } else {
                 router.replace("/(auth)/SignIn");
             }

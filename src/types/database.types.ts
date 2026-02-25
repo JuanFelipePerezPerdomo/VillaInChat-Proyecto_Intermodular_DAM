@@ -14,21 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      chat: {
-        Row: {
-          chat_id: string
-          is_public: boolean
-        }
-        Insert: {
-          chat_id?: string
-          is_public?: boolean
-        }
-        Update: {
-          chat_id?: string
-          is_public?: boolean
-        }
-        Relationships: []
-      }
       chat_members: {
         Row: {
           created_at: string
@@ -56,40 +41,58 @@ export type Database = {
             foreignKeyName: "chat_members_FK_chat_id_fkey"
             columns: ["FK_chat_id"]
             isOneToOne: false
-            referencedRelation: "chat"
+            referencedRelation: "chat_room"
             referencedColumns: ["chat_id"]
           },
           {
             foreignKeyName: "chat_members_FK_user_id_fkey"
             columns: ["FK_user_id"]
             isOneToOne: false
-            referencedRelation: "user"
+            referencedRelation: "user_profile"
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      chat_room: {
+        Row: {
+          chat_id: string
+          is_public: boolean
+          name: string
+        }
+        Insert: {
+          chat_id?: string
+          is_public?: boolean
+          name: string
+        }
+        Update: {
+          chat_id?: string
+          is_public?: boolean
+          name?: string
+        }
+        Relationships: []
       }
       messages: {
         Row: {
           content: string
           created_at: string
+          FK_author_id: string
           FK_chat_id: string
-          FK_user_id: string
           id: number
           read: boolean
         }
         Insert: {
           content: string
           created_at?: string
+          FK_author_id?: string
           FK_chat_id?: string
-          FK_user_id?: string
           id?: number
           read?: boolean
         }
         Update: {
           content?: string
           created_at?: string
+          FK_author_id?: string
           FK_chat_id?: string
-          FK_user_id?: string
           id?: number
           read?: boolean
         }
@@ -98,19 +101,19 @@ export type Database = {
             foreignKeyName: "messages_FK_chat_id_fkey"
             columns: ["FK_chat_id"]
             isOneToOne: false
-            referencedRelation: "chat"
+            referencedRelation: "chat_room"
             referencedColumns: ["chat_id"]
           },
           {
             foreignKeyName: "messages_FK_user_id_fkey"
-            columns: ["FK_user_id"]
+            columns: ["FK_author_id"]
             isOneToOne: false
-            referencedRelation: "user"
+            referencedRelation: "user_profile"
             referencedColumns: ["user_id"]
           },
         ]
       }
-      user: {
+      user_profile: {
         Row: {
           dni: string | null
           nie: string | null
