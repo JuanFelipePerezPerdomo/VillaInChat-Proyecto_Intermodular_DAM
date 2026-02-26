@@ -32,7 +32,10 @@ export default function newRoomPage(){
             return
         }
 
-        // router.push(`/rooms/${result.roomId}`);
+        router.push({
+            pathname: `/rooms/[id]`,
+            params: { id: result.roomId}
+        });
     }
 
     return(

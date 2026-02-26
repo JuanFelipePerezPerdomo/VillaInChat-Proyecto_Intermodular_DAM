@@ -1,13 +1,13 @@
 import { useTheme } from "@/src/hooks";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Tabs as ExpoTabs } from "expo-router";
+import { Tabs } from "expo-router";
 
-export default function Tabs(){
+export default function RootLayout(){
 
     const { colors } = useTheme();
 
     return(
-        <ExpoTabs
+        <Tabs
         screenOptions={{
             tabBarActiveTintColor: colors.primary,
             tabBarInactiveTintColor: colors.icon,
@@ -23,7 +23,7 @@ export default function Tabs(){
             headerShadowVisible: false,
         }}
         >
-            <ExpoTabs.Screen 
+            <Tabs.Screen 
                 name="home"
                 options={{
                     title: "Home",
@@ -32,7 +32,7 @@ export default function Tabs(){
                     )
                 }}
             />
-            <ExpoTabs.Screen
+            <Tabs.Screen
                 name="settings"
                 options={{
                     title: "Settings",
@@ -41,6 +41,6 @@ export default function Tabs(){
                     )
                 }}
             />
-        </ExpoTabs>
+        </Tabs>
     )
 }
