@@ -1,9 +1,9 @@
-import { Button } from "@/src/components/ui"
 import { supabase } from "@/src/lib/supabase"
 import { getCurrentUser } from "@/src/services/getCurrentUser"
 import { router, useLocalSearchParams, } from "expo-router"
 import { useEffect, useState } from "react"
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { FlatList, TextInput } from "react-native-gesture-handler"
 
 type Room = {
     chat_id: string,
@@ -114,21 +114,63 @@ export default function roomPage(){
     }
 
     if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-      </View>
-    )
-  }
-
-    return (
-        <View style={ styles.container }>
-            <Button
-            title="Volver a chats"
-            onPress={() => router.push("/home")}
-            size="small"
-            />
+        return (
+        <View style={styles.center}>
+            <ActivityIndicator />
         </View>
+        )
+    }
+
+    // Necesitamos un Input personalizado para el chat, el que ya tenemos tiene utilidades
+    // mas genericas
+    return (
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={90}
+        >
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.push("/home")}>
+                    <Text style={styles.backBtn}> Volver</Text>
+                </TouchableOpacity>
+                <Text style={styles.roomName}>{room?.name}</Text>
+            </View>
+            <FlatList
+                data={message}
+                keyExtractor={(item)=>item.id.toString()}
+                inverted 
+                contentContainerStyle={styles.messagesList}
+                renderItem={({ item }) => (
+                    <MessageBubble
+                        message={item}
+                        isOwn={item.FK_author_id === userProfile?.user_id}
+                    />
+                )}
+                ListEmptyComponent={
+                    <View style={styles.emptyMessages}>
+                        <Text style={styles.emptyText}>No hay mensajes aun...</Text>
+                    </View>
+                }
+            />
+            <View style={styles.inputRow}>
+                
+                <TextInput
+                    style={styles.input}
+                    value={newMessage}
+                    onChangeText={setNewMessage}
+                    placeholder="Escriba un Mensaje"
+                    multiline
+                    maxLength={500}
+                />
+                <TouchableOpacity
+                    style={[styles.sendBtn, (!newMessage.trim() || sending) && styles.sendBtnDisabled]}
+                    onPress={handleSend}
+                    disabled={!newMessage.trim() || sending}
+                >
+                    <Text style={styles.sendBtnText}>{sending ? "..." : "Enviar"}</Text>
+                </TouchableOpacity>
+            </View>
+        </KeyboardAvoidingView>
     )
 }
 
