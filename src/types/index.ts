@@ -1,9 +1,9 @@
 import { Database } from "./database.types";
 
 // Chat
-export type Chat = Database['public']['Tables']['chat']['Row'];
-export type ChatInsert = Database['public']['Tables']['chat']['Insert'];
-export type ChatUpdate = Database['public']['Tables']['chat']['Update'];
+export type Chat = Database['public']['Tables']['chat_room']['Row'];
+export type ChatInsert = Database['public']['Tables']['chat_room']['Insert'];
+export type ChatUpdate = Database['public']['Tables']['chat_room']['Update'];
 
 // Chat Members
 export type ChatMembers = Database['public']['Tables']['chat_members']['Row'];
@@ -16,9 +16,9 @@ export type MessageInsert = Database['public']['Tables']['messages']['Insert'];
 export type MessageUpdate = Database['public']['Tables']['messages']['Update'];
 
 // User
-export type Users = Database['public']['Tables']['user']['Row'];
-export type UserInsert = Database['public']['Tables']['user']['Insert'];
-export type UserUpdate = Database['public']['Tables']['user']['Update'];
+export type Users = Database['public']['Tables']['user_profile']['Row'];
+export type UserInsert = Database['public']['Tables']['user_profile']['Insert'];
+export type UserUpdate = Database['public']['Tables']['user_profile']['Update'];
 
 //ENUMS
 export type UserRole = Database['public']['Enums']['UserType'];

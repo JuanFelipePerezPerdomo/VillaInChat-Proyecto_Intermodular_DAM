@@ -32,11 +32,13 @@ export const Colors = {
     favorite: "#FFD700",
     icon: "#666666",
     placeholder: "#AAAAAA",
+    card: "#FFFFFF",
+    tabs: "#ffffff",
   },
 
   dark: {
     // Fondos
-    background: "#121212",
+    background: "#0c0c22",
     surface: "#1E1E1E",
     surfaceVariant: "#2C2C2C",
 
@@ -63,11 +65,14 @@ export const Colors = {
     favorite: "#FFD700",
     icon: "#AAAAAA",
     placeholder: "#666666",
+    card: "#24264e",
+    tabs: "#181a33",
   },
 } as const;
 
 export type ColorScheme = "light" | "dark";
 export type ThemeColors = {
+  card: string | undefined;
   background: string;
   surface: string;
   surfaceVariant: string;
@@ -85,4 +90,5 @@ export type ThemeColors = {
   favorite: string;
   icon: string;
   placeholder: string;
+  tabs: string;
 };

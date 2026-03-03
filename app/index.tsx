@@ -1,28 +1,16 @@
-import {
-  Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle
-} from "@/src/components/ui";
-import { Ionicons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { useAuth } from '@/src/providers/AuthProvider';
+import { ActivityIndicator, View } from 'react-native';
 
 export default function Index() {
-  return (
-    <Empty>
-      <EmptyHeader>
-      <EmptyMedia variant="icon">
-        <Ionicons name="chatbubble-outline" size={50}></Ionicons>
-      </EmptyMedia>
-      <EmptyTitle> No hay ningun chat creado </EmptyTitle>
-      <EmptyDescription> Cree un nuevo chat</EmptyDescription>
-      </EmptyHeader>
+  const { loading } = useAuth();
 
-      <EmptyContent>
-        <Button
-          title="Crear un nuevo chat"
-          onPress={() => <Link href="/"></Link>}
-        />
-      </EmptyContent>
-    </Empty>
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
-    
-  );
+  return null;
 }
