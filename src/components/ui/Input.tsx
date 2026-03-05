@@ -1,6 +1,6 @@
 import { useTheme } from "@/src/hooks/useTheme";
 import { BorderRadius, FontSize, Spacing, Typography } from "@/src/themes";
-import { useState } from "react";
+import React, { forwardRef, useState } from "react";
 import {
     StyleSheet,
     Text,
@@ -19,7 +19,7 @@ interface InputProps extends Omit<TextInputProps, "style">{
     containerStyle?: ViewStyle;
 }
 
-export function Input({
+export const Input = forwardRef<TextInput, InputProps>(function Input({
     label,
     error,
     hint,
@@ -29,7 +29,7 @@ export function Input({
     value,
     onChangeText,
     ...textInputProps
-}:InputProps){
+}, ref){
     const {colors} = useTheme();
     const [isFocused, setIsFocused] = useState(false);
 
@@ -48,6 +48,7 @@ export function Input({
       )}
 
       <TextInput
+        ref={ref}
         value={value}
         onChangeText={onChangeText}
         maxLength={maxLength}
@@ -92,7 +93,7 @@ export function Input({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
     container: {

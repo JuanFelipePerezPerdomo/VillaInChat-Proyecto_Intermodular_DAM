@@ -1,17 +1,19 @@
 import { createRoom } from '@/src/actions/rooms';
 import { Button, Card, Checkbox, Input, LoadingSwap } from '@/src/components/ui';
+import { useTheme } from '@/src/hooks';
 import { createRoomSchema } from "@/src/schemas/roomSchema";
 import { Spacing, Typography } from "@/src/themes";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, KeyboardAvoidingView, StyleSheet, Text, View, } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
 type FormData = z.infer<typeof createRoomSchema>
 
 export default function newRoomPage(){
+    const { colors } = useTheme();
     const { control, handleSubmit, formState: {errors, isSubmitting}} = useForm<FormData>({
         defaultValues: {
             name: "",
@@ -39,10 +41,13 @@ export default function newRoomPage(){
     }
 
     return(
-        <KeyboardAvoidingView style={styles.container}>
+        <KeyboardAvoidingView
+            style={[styles.container, { backgroundColor: colors.background }]}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
             <SafeAreaView style={styles.viewContainer}>
                 <Card style={styles.card}>
-                    <Text style={styles.cardTitle}>Crear un nuevo chat </Text>
+                    <Text style={[styles.cardTitle, { color: colors.text }]}>Crear un nuevo chat</Text>
                     <Controller
                         control={control}
                         name="name"
@@ -71,8 +76,10 @@ export default function newRoomPage(){
                                     checked={value}
                                     onCheckedChange={onChange}
                                     style={styles.checkbox}
-                                /> 
-                                <Text style={styles.checkboxLabel}>¿Este Chat es publico?</Text>
+                                />
+                                <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+                                    ¿Este Chat es publico?
+                                </Text>
                             </View>
                         )}
                     />
@@ -81,14 +88,15 @@ export default function newRoomPage(){
                             <Button
                                 title='Crear'
                                 onPress={handleSubmit(onSubmit)}
-                                size='medium' 
+                                size='medium'
                             />
                         </LoadingSwap>
-                        
+
                         <Button
                             title='Cancelar'
                             onPress={router.back}
                             size='medium'
+                            variant='outline'
                         />
                     </View>
                 </Card>
@@ -113,36 +121,11 @@ const styles = StyleSheet.create({
         ...Typography.h3,
         marginBottom: Spacing.lg,
     },
-    form: {
-        gap: Spacing.lg,
-    },
-    errorText: {
-    color: '#dc2626',
-    textAlign: 'center',
-    fontFamily: 'Roboto',
-    },
-    errorMessage: {
-        color: '#dc2626',
-        fontSize: 14,
-        fontFamily: 'Roboto',
-    },
-    footer: {
-        padding: 5,
-        alignItems: 'center',
-    },
-    footerText: {
-        fontFamily: 'Roboto',
-        color: '#666',
-    },
-    linkText: {
-        color: '#6366f1',
-        fontFamily: 'RobotoBold',
-    },
     checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        marginTop: Spacing.md,
     },
     checkbox: {
         width: 28,

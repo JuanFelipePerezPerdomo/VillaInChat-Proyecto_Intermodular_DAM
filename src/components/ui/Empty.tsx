@@ -1,13 +1,7 @@
+import { useTheme } from "@/src/hooks";
+import { BorderRadius, Spacing, Typography } from "@/src/themes";
 import React from "react";
 import { StyleSheet, Text, TextStyle, View, ViewStyle } from "react-native";
-
-// Tokens de color (ajústalos a tu tema)
-const colors = {
-  muted: "#f1f5f9",
-  mutedForeground: "#64748b",
-  foreground: "#0f172a",
-  border: "#e2e8f0",
-};
 
 // ─── Empty ───────────────────────────────────────────────
 type EmptyProps = {
@@ -16,8 +10,9 @@ type EmptyProps = {
 };
 
 export function Empty({ children, style }: EmptyProps) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.empty, style]}>
+    <View style={[styles.empty, { borderColor: colors.border }, style]}>
       {children}
     </View>
   );
@@ -47,11 +42,12 @@ type EmptyMediaProps = {
 };
 
 export function EmptyMedia({ children, variant = "default", style }: EmptyMediaProps) {
+  const { colors } = useTheme();
   return (
     <View
       style={[
         styles.emptyMediaBase,
-        variant === "icon" ? styles.emptyMediaIcon : styles.emptyMediaDefault,
+        variant === "icon" ? [styles.emptyMediaIcon, { backgroundColor: colors.surfaceVariant }] : styles.emptyMediaDefault,
         style,
       ]}
     >
@@ -67,8 +63,9 @@ type EmptyTitleProps = {
 };
 
 export function EmptyTitle({ children, style }: EmptyTitleProps) {
+  const { colors } = useTheme();
   return (
-    <Text style={[styles.emptyTitle, style]}>
+    <Text style={[styles.emptyTitle, { color: colors.text }, style]}>
       {children}
     </Text>
   );
@@ -81,8 +78,9 @@ type EmptyDescriptionProps = {
 };
 
 export function EmptyDescription({ children, style }: EmptyDescriptionProps) {
+  const { colors } = useTheme();
   return (
-    <Text style={[styles.emptyDescription, style]}>
+    <Text style={[styles.emptyDescription, { color: colors.textSecondary }, style]}>
       {children}
     </Text>
   );
@@ -109,53 +107,45 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 24,
-    borderRadius: 8,
+    gap: Spacing.xl,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: colors.border,
-    padding: 24,
+    padding: Spacing.xl,
   },
   emptyHeader: {
     flexDirection: "column",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.sm,
     maxWidth: 384,
   },
   emptyMediaBase: {
     flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   emptyMediaDefault: {
     backgroundColor: "transparent",
   },
   emptyMediaIcon: {
-    backgroundColor: colors.muted,
     width: 40,
     height: 40,
-    borderRadius: 8,
+    borderRadius: BorderRadius.md,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: "500",
-    letterSpacing: -0.3,
-    color: colors.foreground,
+    ...Typography.h3,
     textAlign: "center",
   },
   emptyDescription: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: colors.mutedForeground,
+    ...Typography.bodySmall,
     textAlign: "center",
   },
   emptyContent: {
     flexDirection: "column",
     alignItems: "center",
-    gap: 16,
+    gap: Spacing.lg,
     width: "100%",
     maxWidth: 384,
   },
 });
-

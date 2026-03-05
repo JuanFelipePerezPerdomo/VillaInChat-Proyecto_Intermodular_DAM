@@ -1,14 +1,11 @@
-import { joinRoom, leaveRoom } from "@/src/actions";
-import {
-  Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle
-} from "@/src/components/ui";
-import { supabase } from "@/src/lib/supabase";
+import { RoomList } from "@/src/components/rooms";
+import { Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/src/components/ui";
+import { useTheme } from "@/src/hooks";
 import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { FlatList } from "react-native-gesture-handler";
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Room = {
@@ -18,10 +15,11 @@ type Room = {
 }
 
 export default function Home() {
-  const [user, setUser] = useState<any>(null)
-  const [publicRooms, setPublicRooms] = useState<Room[]>([])
-  const [joinedRooms, setJoinedRooms] = useState<Room[]>([])
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(null);
+  const [publicRooms, setPublicRooms] = useState<Room[]>([]);
+  const [joinedRooms, setJoinedRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { colors } = useTheme();
 
   async function loadData() {
     const currentUser = await getCurrentUser()
@@ -43,16 +41,9 @@ export default function Home() {
     loadData()
   }, [])
 
-  if (loading) {
-    return(
-      <View style={{flex: 1, justifyContent: "center", alignItems: "center"}}>
-        <ActivityIndicator/>
-      </View>
-    )
-  }
+  if (loading) return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator color={colors.primary} /></View>;
+  if (!user) return <Redirect href="/SignIn" />;
 
-  if(!user) return <Redirect href={"/SignIn"}/>
-  
   const notJoinedPublicRooms = publicRooms.filter(
     room => !joinedRooms.some(r => r.id === room.id)
   )
@@ -60,38 +51,29 @@ export default function Home() {
 //En español si no existe ningun chat en la base de datos muestra esto
   if(publicRooms.length === 0 && joinedRooms.length === 0){
     return (
-      <Empty>
-        <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Ionicons name="chatbubble-outline" size={42}></Ionicons>
-        </EmptyMedia>
-        <EmptyTitle> No hay ningun chat creado </EmptyTitle>
-        <EmptyDescription> Cree un nuevo chat</EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <Button
-            title="Crear un nuevo chat"
-            onPress={() => router.push("/rooms/newRoomPage")}
-          />
-        </EmptyContent>
-      </Empty>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Ionicons name="chatbubble-outline" size={42} color={colors.icon} />
+            </EmptyMedia>
+            <EmptyTitle>No hay ningun chat creado</EmptyTitle>
+            <EmptyDescription>Cree un nuevo chat</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button title="Crear un nuevo chat" onPress={() => router.push("/rooms/newRoomPage")} />
+          </EmptyContent>
+        </Empty>
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <RoomList
-        title="Tus Chats"
-        rooms={joinedRooms}
-        isJoined
-        onAction={loadData}
-      />
-      <RoomList
-        title="Chats Publicos"
-        rooms={notJoinedPublicRooms}
-        isJoined={false}
-        onAction={loadData}  // refresca tras join
-      />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <RoomList title="Tus Chats" rooms={joinedRooms} isJoined onAction={loadData} />
+        <RoomList title="Chats Publicos" rooms={notJoinedPublicRooms} isJoined={false} onAction={loadData} />
+      </ScrollView>
     </SafeAreaView>
   )
 }
@@ -244,25 +226,7 @@ async function getJoinedRooms(userId: string): Promise<Room[]> {
 
 // no voy a mentir este StyleSheet me dan ganas de matarme
 const styles = StyleSheet.create({
-  center: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center" 
-  },
-  container: { flex: 1, padding: 16, gap: 24 },
-  section: { gap: 12 },
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  sectionTitle: { fontSize: 20, fontWeight: "600" },
-  createButton: { fontSize: 14, color: "#6366f1" },
-  card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  cardHeader: { marginBottom: 12, gap: 4 },
-  cardTitle: { fontSize: 16, fontWeight: "600" },
-  cardDescription: { fontSize: 13, color: "#6b7280" },
-  cardFooter: { flexDirection: "row" },
-  btn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  btnPrimary: { backgroundColor: "#6366f1" },
-  btnDanger: { backgroundColor: "#ef4444" },
-  btnOutline: { borderWidth: 1, borderColor: "#6366f1" },
-  btnText: { color: "#fff", fontWeight: "500", fontSize: 13 },
-  btnOutlineText: { color: "#6366f1", fontWeight: "500", fontSize: 13 },
-})
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { flex: 1 },
+  scrollContainer: { flexGrow: 1, padding: 16, gap: 24 },
+});

@@ -1,22 +1,14 @@
+import { useTheme } from "@/src/hooks";
+import { BorderRadius } from "@/src/themes";
 import { Check } from "lucide-react-native";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
-    Pressable,
-    PressableProps,
-    StyleSheet,
-    View,
-    ViewStyle,
+  Pressable,
+  PressableProps,
+  StyleSheet,
+  View,
+  ViewStyle,
 } from "react-native";
-
-// Tokens de color (ajústalos a tu tema)
-const colors = {
-  primary: "#0f172a",
-  primaryForeground: "#ffffff",
-  border: "#cbd5e1",
-  ring: "#94a3b8",
-  destructive: "#ef4444",
-  disabled: "#94a3b8",
-};
 
 type CheckboxProps = Omit<PressableProps, "onPress"> & {
   checked?: boolean;
@@ -35,6 +27,25 @@ function Checkbox({
   ...props
 }: CheckboxProps) {
   const [focused, setFocused] = useState(false);
+  const { colors } = useTheme();
+
+  const checkedStyle = checked ? {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  } : {};
+
+  const focusedStyle = focused ? {
+    borderColor: colors.textTertiary,
+    shadowColor: colors.textTertiary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 3,
+    elevation: 2,
+  } : {};
+
+  const invalidStyle = invalid ? {
+    borderColor: colors.error,
+  } : {};
 
   return (
     <Pressable
@@ -47,9 +58,10 @@ function Checkbox({
       disabled={disabled}
       style={[
         styles.checkbox,
-        checked && styles.checkboxChecked,
-        focused && styles.checkboxFocused,
-        invalid && styles.checkboxInvalid,
+        { borderColor: colors.border },
+        checkedStyle,
+        focusedStyle,
+        invalidStyle,
         disabled && styles.checkboxDisabled,
         style,
       ]}
@@ -59,7 +71,7 @@ function Checkbox({
         <View style={styles.indicator}>
           <Check
             size={14}
-            color={disabled ? colors.disabled : colors.primaryForeground}
+            color={disabled ? colors.textTertiary : "#ffffff"}
             strokeWidth={2.5}
           />
         </View>
@@ -72,29 +84,12 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 16,
     height: 16,
-    borderRadius: 4,
+    borderRadius: BorderRadius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
     backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  checkboxFocused: {
-    borderColor: colors.ring,
-    // Simulamos el ring con un outline via shadowColor en iOS
-    shadowColor: colors.ring,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  checkboxInvalid: {
-    borderColor: colors.destructive,
   },
   checkboxDisabled: {
     opacity: 0.5,
