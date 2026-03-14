@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       chat_members: {
@@ -20,21 +45,18 @@ export type Database = {
           FK_chat_id: string
           FK_user_id: string
           member_id: number
-          member_role: Database["public"]["Enums"]["ChatPrivileges"]
         }
         Insert: {
           created_at?: string
           FK_chat_id?: string
           FK_user_id?: string
           member_id?: number
-          member_role?: Database["public"]["Enums"]["ChatPrivileges"]
         }
         Update: {
           created_at?: string
           FK_chat_id?: string
           FK_user_id?: string
           member_id?: number
-          member_role?: Database["public"]["Enums"]["ChatPrivileges"]
         }
         Relationships: [
           {
@@ -56,18 +78,83 @@ export type Database = {
       chat_room: {
         Row: {
           chat_id: string
+          FK_group_id: string | null
           is_public: boolean
           name: string
         }
         Insert: {
           chat_id?: string
+          FK_group_id?: string | null
           is_public?: boolean
           name: string
         }
         Update: {
           chat_id?: string
+          FK_group_id?: string | null
           is_public?: boolean
           name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_room_FK_group_id_fkey"
+            columns: ["FK_group_id"]
+            isOneToOne: false
+            referencedRelation: "group_room"
+            referencedColumns: ["group_id"]
+          },
+        ]
+      }
+      group_members: {
+        Row: {
+          created_at: string
+          FK_group_id: string
+          FK_user_id: string
+          user_role: Database["public"]["Enums"]["ChatPrivileges"] | null
+        }
+        Insert: {
+          created_at?: string
+          FK_group_id?: string
+          FK_user_id?: string
+          user_role?: Database["public"]["Enums"]["ChatPrivileges"] | null
+        }
+        Update: {
+          created_at?: string
+          FK_group_id?: string
+          FK_user_id?: string
+          user_role?: Database["public"]["Enums"]["ChatPrivileges"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_FK_group_id_fkey"
+            columns: ["FK_group_id"]
+            isOneToOne: false
+            referencedRelation: "group_room"
+            referencedColumns: ["group_id"]
+          },
+          {
+            foreignKeyName: "group_members_FK_user_id_fkey"
+            columns: ["FK_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      group_room: {
+        Row: {
+          created_at: string
+          group_id: string
+          group_name: string
+        }
+        Insert: {
+          created_at?: string
+          group_id?: string
+          group_name: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          group_name?: string
         }
         Relationships: []
       }
@@ -98,18 +185,18 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "messages_FK_author_id_fkey"
+            columns: ["FK_author_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "messages_FK_chat_id_fkey"
             columns: ["FK_chat_id"]
             isOneToOne: false
             referencedRelation: "chat_room"
             referencedColumns: ["chat_id"]
-          },
-          {
-            foreignKeyName: "messages_FK_user_id_fkey"
-            columns: ["FK_author_id"]
-            isOneToOne: false
-            referencedRelation: "user_profile"
-            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -148,7 +235,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      ChatPrivileges: "ADMIN" | "MEMBER"
+      ChatPrivileges: "ADMIN" | "MEMBER" | "CLASS_REP"
       UserType: "ADMIN" | "TEACHER" | "STUDENT"
     }
     CompositeTypes: {
@@ -275,9 +362,12 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
-      ChatPrivileges: ["ADMIN", "MEMBER"],
+      ChatPrivileges: ["ADMIN", "MEMBER", "CLASS_REP"],
       UserType: ["ADMIN", "TEACHER", "STUDENT"],
     },
   },

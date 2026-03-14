@@ -50,7 +50,7 @@ export async function joinRoom(roomId:string) {
 
     const { error } = await supabase
     .from("chat_members")
-    .insert({ FK_chat_id: roomId, FK_user_id: user.id, member_role: "MEMBER" })
+    .insert({ FK_chat_id: roomId, FK_user_id: user.id })
 
     if (error) return { error: true, message: "Failed to join room" }
     return { error: false }
