@@ -1,1 +1,1 @@
-export { createRoom, joinRoom, leaveRoom } from "./rooms";
+export { createGroup, createRoom, joinGroup, joinRoom, leaveGroup, leaveRoom } from "./rooms";

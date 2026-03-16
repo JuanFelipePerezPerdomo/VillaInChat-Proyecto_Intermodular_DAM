@@ -1,29 +1,33 @@
 import { createRoom } from '@/src/actions/rooms';
-import { Button, Card, Checkbox, Input, LoadingSwap } from '@/src/components/ui';
+import { Button, Card, Input, LoadingSwap } from '@/src/components/ui';
 import { createRoomSchema } from "@/src/schemas/roomSchema";
 import { Spacing, Typography } from "@/src/themes";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, KeyboardAvoidingView, StyleSheet, Text, View, } from 'react-native';
+import { Alert, KeyboardAvoidingView, StyleSheet, Text, TouchableOpacity, View, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
 type FormData = z.infer<typeof createRoomSchema>
 
+const CHAT_TYPE_OPTIONS: { value: FormData["chatType"]; label: string; description: string }[] = [
+    { value: "PRIVATE",       label: "Privado",       description: "Solo miembros invitados" },
+    { value: "PUBLIC",        label: "Público",       description: "Cualquiera puede unirse" },
+    { value: "ANNOUNCEMENTS", label: "Anuncios",      description: "Solo roles especiales pueden escribir" },
+]
+
 export default function newRoomPage(){
     const { control, handleSubmit, formState: {errors, isSubmitting}} = useForm<FormData>({
         defaultValues: {
             name: "",
-            isPublic: false
+            chatType: "PRIVATE"
         },
         resolver: zodResolver(createRoomSchema)
     })
 
-    async function onSubmit (data: FormData) {
+    async function onSubmit(data: FormData) {
         await new Promise(resolve => setTimeout(resolve, 1000))
-        console.log(data)
-
         const result = await createRoom(data)
 
         if(result.error) {
@@ -62,17 +66,22 @@ export default function newRoomPage(){
                     />
                     <Controller
                         control={control}
-                        name="isPublic"
-                        render={({ field: { onChange, value, ...field } }) => (
-                            <View style={styles.checkboxContainer}>
-                                <Checkbox
-                                    {...field}
-                                    id={field.name}
-                                    checked={value}
-                                    onCheckedChange={onChange}
-                                    style={styles.checkbox}
-                                /> 
-                                <Text style={styles.checkboxLabel}>¿Este Chat es publico?</Text>
+                        name="chatType"
+                        render={({ field: { onChange, value } }) => (
+                            <View style={styles.typeContainer}>
+                                <Text style={styles.typeLabel}>Tipo de chat</Text>
+                                {CHAT_TYPE_OPTIONS.map((option) => (
+                                    <TouchableOpacity
+                                        key={option.value}
+                                        style={[styles.typeOption, value === option.value && styles.typeOptionSelected]}
+                                        onPress={() => onChange(option.value)}
+                                    >
+                                        <Text style={[styles.typeOptionLabel, value === option.value && styles.typeOptionLabelSelected]}>
+                                            {option.label}
+                                        </Text>
+                                        <Text style={styles.typeOptionDesc}>{option.description}</Text>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
                         )}
                     />
@@ -81,10 +90,10 @@ export default function newRoomPage(){
                             <Button
                                 title='Crear'
                                 onPress={handleSubmit(onSubmit)}
-                                size='medium' 
+                                size='medium'
                             />
                         </LoadingSwap>
-                        
+
                         <Button
                             title='Cancelar'
                             onPress={router.back}
@@ -157,5 +166,37 @@ const styles = StyleSheet.create({
         alignContent: 'center',
         gap: Spacing.md,
         marginTop: Spacing.xl
-    }
+    },
+    typeContainer: {
+        gap: Spacing.sm,
+        marginTop: Spacing.md,
+    },
+    typeLabel: {
+        ...Typography.body,
+        fontWeight: "600",
+        marginBottom: Spacing.xs,
+    },
+    typeOption: {
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        borderRadius: 8,
+        padding: Spacing.md,
+        gap: 2,
+    },
+    typeOptionSelected: {
+        borderColor: '#6366f1',
+        backgroundColor: '#eef2ff',
+    },
+    typeOptionLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+    },
+    typeOptionLabelSelected: {
+        color: '#6366f1',
+    },
+    typeOptionDesc: {
+        fontSize: 12,
+        color: '#6b7280',
+    },
 });

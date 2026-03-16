@@ -23,12 +23,21 @@ export default function RootLayout(){
             headerShadowVisible: false,
         }}
         >
-            <Tabs.Screen 
+            <Tabs.Screen
                 name="home"
                 options={{
-                    title: "Home",
+                    title: "Grupos",
                     tabBarIcon: ({ color }) => (
-                        <MaterialCommunityIcons name="home" size={24} color={color}/>
+                        <MaterialCommunityIcons name="account-group" size={24} color={color}/>
+                    )
+                }}
+            />
+            <Tabs.Screen
+                name="privateChatRooms"
+                options={{
+                    title: "Chats",
+                    tabBarIcon: ({ color }) => (
+                        <MaterialCommunityIcons name="chat" size={24} color={color}/>
                     )
                 }}
             />

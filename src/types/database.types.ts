@@ -78,20 +78,20 @@ export type Database = {
       chat_room: {
         Row: {
           chat_id: string
+          chat_type: Database["public"]["Enums"]["ChatType"]
           FK_group_id: string | null
-          is_public: boolean
           name: string
         }
         Insert: {
           chat_id?: string
+          chat_type?: Database["public"]["Enums"]["ChatType"]
           FK_group_id?: string | null
-          is_public?: boolean
           name: string
         }
         Update: {
           chat_id?: string
+          chat_type?: Database["public"]["Enums"]["ChatType"]
           FK_group_id?: string | null
-          is_public?: boolean
           name?: string
         }
         Relationships: [
@@ -236,6 +236,7 @@ export type Database = {
     }
     Enums: {
       ChatPrivileges: "ADMIN" | "MEMBER" | "CLASS_REP"
+      ChatType: "PRIVATE" | "PUBLIC" | "ANNOUNCEMENTS"
       UserType: "ADMIN" | "TEACHER" | "STUDENT"
     }
     CompositeTypes: {
@@ -368,6 +369,7 @@ export const Constants = {
   public: {
     Enums: {
       ChatPrivileges: ["ADMIN", "MEMBER", "CLASS_REP"],
+      ChatType: ["PRIVATE", "PUBLIC", "ANNOUNCEMENTS"],
       UserType: ["ADMIN", "TEACHER", "STUDENT"],
     },
   },

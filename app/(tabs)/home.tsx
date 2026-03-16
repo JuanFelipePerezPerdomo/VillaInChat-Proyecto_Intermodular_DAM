@@ -1,4 +1,4 @@
-import { joinRoom, leaveRoom } from "@/src/actions";
+import { joinGroup, leaveGroup } from "@/src/actions";
 import {
   Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle
 } from "@/src/components/ui";
@@ -11,7 +11,7 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "rea
 import { FlatList } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type Room = {
+type Group = {
   id: string,
   name: string,
   memberCount: number
@@ -19,8 +19,8 @@ type Room = {
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
-  const [publicRooms, setPublicRooms] = useState<Room[]>([])
-  const [joinedRooms, setJoinedRooms] = useState<Room[]>([])
+  const [groups, setGroups] = useState<Group[]>([])
+  const [joinedGroups, setJoinedGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
 
   async function loadData() {
@@ -30,12 +30,12 @@ export default function Home() {
       return
     }
     setUser(currentUser)
-    const [pub, joined] = await Promise.all([
-      getPublicRooms(),
-      getJoinedRooms(currentUser.id),
+    const [allGroups, myGroups] = await Promise.all([
+      getAllGroups(),
+      getJoinedGroups(currentUser.id),
     ])
-    setPublicRooms(pub)
-    setJoinedRooms(joined)
+    setGroups(allGroups)
+    setJoinedGroups(myGroups)
     setLoading(false)
   }
 
@@ -44,34 +44,33 @@ export default function Home() {
   }, [])
 
   if (loading) {
-    return(
-      <View style={{flex: 1, justifyContent: "center", alignItems: "center"}}>
-        <ActivityIndicator/>
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator />
       </View>
     )
   }
 
-  if(!user) return <Redirect href={"/SignIn"}/>
-  
-  const notJoinedPublicRooms = publicRooms.filter(
-    room => !joinedRooms.some(r => r.id === room.id)
+  if (!user) return <Redirect href={"/SignIn"} />
+
+  const notJoinedGroups = groups.filter(
+    g => !joinedGroups.some(jg => jg.id === g.id)
   )
 
-//En español si no existe ningun chat en la base de datos muestra esto
-  if(publicRooms.length === 0 && joinedRooms.length === 0){
+  if (groups.length === 0) {
     return (
       <Empty>
         <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Ionicons name="chatbubble-outline" size={42}></Ionicons>
-        </EmptyMedia>
-        <EmptyTitle> No hay ningun chat creado </EmptyTitle>
-        <EmptyDescription> Cree un nuevo chat</EmptyDescription>
+          <EmptyMedia variant="icon">
+            <Ionicons name="people-outline" size={42} />
+          </EmptyMedia>
+          <EmptyTitle> No hay ningun grupo creado </EmptyTitle>
+          <EmptyDescription> Espera a que un administrador cree un grupo</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button
-            title="Crear un nuevo chat"
-            onPress={() => router.push("/rooms/newRoomPage")}
+            title="Refrescar"
+            onPress={() => router.push("/groups/newGroupPage")}
           />
         </EmptyContent>
       </Empty>
@@ -80,55 +79,51 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <RoomList
-        title="Tus Chats"
-        rooms={joinedRooms}
+      <View style={styles.pageHeader}>
+        <Text style={styles.pageTitle}>Grupos</Text>
+        <Button
+          title="Nuevo grupo"
+          onPress={() => router.push("/groups/newGroupPage" as any)}
+          size="small"
+        />
+      </View>
+      <GroupList
+        title="Tus Grupos"
+        groups={joinedGroups}
         isJoined
         onAction={loadData}
       />
-      <RoomList
-        title="Chats Publicos"
-        rooms={notJoinedPublicRooms}
+      <GroupList
+        title="Grupos Disponibles"
+        groups={notJoinedGroups}
         isJoined={false}
-        onAction={loadData}  // refresca tras join
+        onAction={loadData}
       />
     </SafeAreaView>
   )
 }
 
-/* Tengo la sensacion de que esto es una mala practica o una organizacion que se sigue en next.js
-  como esta en el tutorial que te estoy viendo para conseguir esto, probablemente mas adelante mueva
-  estascosas a components eso lo tengo que consultar con el profesor y con mis compañeros ya que
-  no estoy familiarizado cn el ecosistema de Next y sobre todo en como adaptar cosas de Next a Node */
-
-function RoomList({
+function GroupList({
   title,
-  rooms,
+  groups,
   isJoined,
   onAction,
-}:{
+}: {
   title: string,
-  rooms: Room[],
+  groups: Group[],
   isJoined: boolean,
   onAction: () => void
 }) {
-  if(rooms.length === 0) return null
+  if (groups.length === 0) return null
 
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <Button
-          title="Crear un nuevo chat"
-          onPress={() => router.push("/rooms/newRoomPage")}
-          size="small"
-        />
-      </View>
+      <Text style={styles.sectionTitle}>{title}</Text>
       <FlatList
-        data={rooms}
+        data={groups}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <RoomCard {...item} isJoined={isJoined} onAction={onAction}/>
+          <GroupCard {...item} isJoined={isJoined} onAction={onAction} />
         )}
         scrollEnabled={false}
       />
@@ -136,30 +131,30 @@ function RoomList({
   )
 }
 
-function RoomCard({
+function GroupCard({
   id,
   name,
   memberCount,
   isJoined,
   onAction,
-}: Room & {isJoined: boolean; onAction: () => void }) {
+}: Group & { isJoined: boolean; onAction: () => void }) {
   const [loadingAction, setLoadingAction] = useState(false)
 
   async function handleJoin() {
-    setLoadingAction(true);
-    await joinRoom(id)
+    setLoadingAction(true)
+    await joinGroup(id)
     onAction()
     setLoadingAction(false)
   }
 
   async function handleLeave() {
     setLoadingAction(true)
-    await leaveRoom(id)
+    await leaveGroup(id)
     onAction()
     setLoadingAction(false)
   }
 
-  return(
+  return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{name}</Text>
@@ -172,7 +167,7 @@ function RoomCard({
           <>
             <TouchableOpacity
               style={[styles.btn, styles.btnPrimary, { flex: 1, marginRight: 8 }]}
-              onPress={() => router.push({ pathname: "/rooms/[id]", params: { id } })}
+              onPress={() => router.push({ pathname: "/groups/[id]" as any, params: { id } })}
             >
               <Text style={styles.btnText}>Entrar</Text>
             </TouchableOpacity>
@@ -202,58 +197,44 @@ function RoomCard({
   )
 }
 
-/* Esta funcion probablemente sea cambiada o eliminada a posterior teniendo en cuenta que hay que 
-  refactorizar la db por que se supone que hay chats privados y "publicos" pero los "publicos" mas bien
-  actuan como servidores, ya que un servidor cuenta con varios chats al tener por ejemplo un chat
-  de anuncios donde solo los admins pueden postear mensajes
-*/
-async function getPublicRooms(): Promise<Room[]> {
+async function getAllGroups(): Promise<Group[]> {
   const { data, error } = await supabase
-  .from("chat_room")
-  .select("chat_id, name, chat_members (count)")
-  .eq("is_public", true)
-  .order("name", { ascending: true })
+    .from("group_room")
+    .select("group_id, group_name, group_members (count)")
+    .order("group_name", { ascending: true })
 
-  if ( error || !data ) return [];
+  if (error || !data) return []
 
-  return data.map((room) => ({
-    id: room.chat_id,
-    name: room.name,
-    memberCount: (room.chat_members as any)[0]?.count ?? 0,
+  return data.map((g) => ({
+    id: g.group_id,
+    name: g.group_name,
+    memberCount: (g.group_members as any)[0]?.count ?? 0,
   }))
 }
 
-/* Misma logica para este, probablemente la version final muestre todos los chats personales
-que tu tienes en vez de un sistema de dame los chats en donde estoy unido que sean privados */
-async function getJoinedRooms(userId: string): Promise<Room[]> {
+async function getJoinedGroups(userId: string): Promise<Group[]> {
   const { data, error } = await supabase
-  .from("chat_room")
-  .select("chat_id, name, chat_members (FK_user_id)")
-  .order("name", { ascending: true })
+    .from("group_room")
+    .select("group_id, group_name, group_members (FK_user_id)")
+    .order("group_name", { ascending: true })
 
-  if ( error || !data ) return [];
+  if (error || !data) return []
 
   return data
-  .filter(room => room.chat_members.some((u: any) => u.FK_user_id === userId))
-  .map((room) => ({
-    id: room.chat_id,
-    name: room.name,
-    memberCount: room.chat_members.length
-  }))
+    .filter(g => g.group_members.some((m: any) => m.FK_user_id === userId))
+    .map((g) => ({
+      id: g.group_id,
+      name: g.group_name,
+      memberCount: g.group_members.length,
+    }))
 }
 
-// no voy a mentir este StyleSheet me dan ganas de matarme
 const styles = StyleSheet.create({
-  center: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center" 
-  },
   container: { flex: 1, padding: 16, gap: 24 },
+  pageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  pageTitle: { fontSize: 22, fontWeight: "700" },
   section: { gap: 12 },
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   sectionTitle: { fontSize: 20, fontWeight: "600" },
-  createButton: { fontSize: 14, color: "#6366f1" },
   card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   cardHeader: { marginBottom: 12, gap: 4 },
   cardTitle: { fontSize: 16, fontWeight: "600" },

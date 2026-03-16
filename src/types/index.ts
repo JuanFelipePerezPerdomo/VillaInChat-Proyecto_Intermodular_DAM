@@ -23,6 +23,7 @@ export type UserUpdate = Database['public']['Tables']['user_profile']['Update'];
 //ENUMS
 export type UserRole = Database['public']['Enums']['UserType'];
 export type ChatPrivileges = Database['public']['Enums']['ChatPrivileges'];
+export type ChatType = Database['public']['Enums']['ChatType'];
 
 //Customs types y Relaciones
 
@@ -61,8 +62,8 @@ export type ChatDetail = Chat & {
 
 // Para crear un chat nuevo
 export type CreateChatData = {
-  is_public?: boolean;
-  member_ids: string[]; // Array de user_ids para agregar como miembros
+  chat_type: ChatType;
+  member_ids: string[];
 };
 
 // Para enviar un mensaje

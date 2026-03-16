@@ -44,4 +44,4 @@ app-example
 /android
 
 # Supabase CLI temp files
-supabase/.temp/
+/supabase/.temp

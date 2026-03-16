@@ -8,6 +8,7 @@ import { FlatList, TextInput } from "react-native-gesture-handler"
 type Room = {
     chat_id: string,
     name: string,
+    FK_group_id: string | null,
 }
 
 type UserProfile = {
@@ -130,7 +131,11 @@ export default function roomPage(){
             keyboardVerticalOffset={90}
         >
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.push("/home")}>
+                <TouchableOpacity onPress={() =>
+                    room?.FK_group_id
+                        ? router.replace({ pathname: "/groups/[id]" as any, params: { id: room.FK_group_id } })
+                        : router.replace("/(tabs)/privateChatRooms")
+                }>
                     <Text style={styles.backBtn}> Volver</Text>
                 </TouchableOpacity>
                 <Text style={styles.roomName}>{room?.name}</Text>
@@ -204,13 +209,13 @@ async function getRoom(roomId: string): Promise<Room | null> {
     // Verifica que el usuario sea miembro de la sala
     const { data, error } = await supabase
     .from("chat_room")
-    .select("chat_id, name, chat_members!inner (FK_user_id)")
+    .select("chat_id, name, FK_group_id, chat_members!inner (FK_user_id)")
     .eq("chat_id", roomId)
     .eq("chat_members.FK_user_id", user.id)
     .single()
 
     if (error || !data) return null
-    return { chat_id: data.chat_id, name: data.name }
+    return { chat_id: data.chat_id, name: data.name, FK_group_id: data.FK_group_id ?? null }
 }
 
 async function getUserProfile(): Promise<UserProfile | null> {
