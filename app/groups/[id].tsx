@@ -1,3 +1,4 @@
+import { useTheme } from "@/src/hooks"
 import { supabase } from "@/src/lib/supabase"
 import { getCurrentUser } from "@/src/services/getCurrentUser"
 import { Ionicons } from "@expo/vector-icons"
@@ -20,14 +21,15 @@ type GroupInfo = {
     group_name: string
 }
 
-const CHAT_TYPE_CONFIG: Record<ChatType, { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }> = {
-    PUBLIC:        { icon: "chatbubbles-outline",    label: "General",  color: "#6366f1" },
-    PRIVATE:       { icon: "lock-closed-outline",    label: "Privado",  color: "#6b7280" },
-    ANNOUNCEMENTS: { icon: "megaphone-outline",      label: "Avisos",   color: "#f59e0b" },
+const CHAT_TYPE_ICONS: Record<ChatType, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
+    PUBLIC:        { icon: "chatbubbles-outline",    label: "General" },
+    PRIVATE:       { icon: "lock-closed-outline",    label: "Privado" },
+    ANNOUNCEMENTS: { icon: "megaphone-outline",      label: "Avisos" },
 }
 
 export default function GroupPage() {
     const { id } = useLocalSearchParams<{ id: string }>()
+    const { colors } = useTheme()
 
     const [group, setGroup] = useState<GroupInfo | null>(null)
     const [chats, setChats] = useState<GroupChat[]>([])
@@ -67,12 +69,12 @@ export default function GroupPage() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={22} color="#6366f1" />
+                    <Ionicons name="arrow-back" size={22} color={colors.primary} />
                 </TouchableOpacity>
-                <Text style={styles.groupName}>{group?.group_name}</Text>
+                <Text style={[styles.groupName, { color: colors.text }]}>{group?.group_name}</Text>
             </View>
 
             <FlatList
@@ -87,8 +89,8 @@ export default function GroupPage() {
                 )}
                 ListEmptyComponent={
                     <View style={styles.empty}>
-                        <Ionicons name="chatbubble-outline" size={40} color="#d1d5db" />
-                        <Text style={styles.emptyText}>No hay chats en este grupo</Text>
+                        <Ionicons name="chatbubble-outline" size={40} color={colors.border} />
+                        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No hay chats en este grupo</Text>
                     </View>
                 }
             />
@@ -97,18 +99,19 @@ export default function GroupPage() {
 }
 
 function ChatCard({ chat, onPress }: { chat: GroupChat; onPress: () => void }) {
-    const config = CHAT_TYPE_CONFIG[chat.chat_type]
+    const config = CHAT_TYPE_ICONS[chat.chat_type]
+    const { colors } = useTheme()
 
     return (
-        <TouchableOpacity style={styles.card} onPress={onPress}>
-            <View style={[styles.iconContainer, { backgroundColor: config.color + "1a" }]}>
-                <Ionicons name={config.icon} size={24} color={config.color} />
+        <TouchableOpacity style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]} onPress={onPress}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.primary + "1a" }]}>
+                <Ionicons name={config.icon} size={24} color={colors.primary} />
             </View>
             <View style={styles.cardContent}>
-                <Text style={styles.chatName}>{chat.name}</Text>
-                <Text style={styles.chatType}>{config.label}</Text>
+                <Text style={[styles.chatName, { color: colors.textTertiary }]}>{chat.name}</Text>
+                <Text style={[styles.chatType, { color: colors.textSecondary }]}>{config.label}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
     )
 }
@@ -144,16 +147,13 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-        backgroundColor: "#f9fafb",
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
         padding: 16,
-        backgroundColor: "#fff",
         borderBottomWidth: 1,
-        borderBottomColor: "#e5e7eb",
     },
     backBtn: {
         padding: 4,
@@ -171,10 +171,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 14,
-        backgroundColor: "#fff",
         borderRadius: 12,
         padding: 14,
-        shadowColor: "#000",
         shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 2,
@@ -193,11 +191,9 @@ const styles = StyleSheet.create({
     chatName: {
         fontSize: 15,
         fontWeight: "600",
-        color: "#111827",
     },
     chatType: {
         fontSize: 12,
-        color: "#6b7280",
     },
     empty: {
         alignItems: "center",
@@ -205,7 +201,6 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     emptyText: {
-        color: "#9ca3af",
         fontSize: 14,
     },
 })

@@ -36,7 +36,7 @@ export function Card({
     const getShadow = () => {
         if (variant !== "elevated") return {};
         return {
-            shadowColor: "#000",
+            shadowColor: colors.text,
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: isDark ? 0.3 : 0.1,
             shadowRadius: 4,

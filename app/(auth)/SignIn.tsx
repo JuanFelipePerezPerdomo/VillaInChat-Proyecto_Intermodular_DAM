@@ -1,4 +1,5 @@
 import { Input } from "@/src/components/ui";
+import { useTheme } from "@/src/hooks";
 import { supabase } from "@/src/lib/supabase";
 import { Spacing, Typography } from "@/src/themes";
 import { router } from "expo-router";
@@ -22,6 +23,7 @@ export default function SignIn() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { colors } = useTheme();
 
     const { control, handleSubmit, formState: {errors} } = useForm<SignInForm>({
         resolver: zodResolver(SignInSchema)
@@ -56,7 +58,7 @@ export default function SignIn() {
                 name="email" // ya eventualmente intentaremos hacer que este login en vez de email DNI/NIE/Passaporte
                 render={({ field: { onChange, value }}) => (
                     <View>
-                        <Input // hacer un input personalizado en components/ui 
+                        <Input // hacer un input personalizado en components/ui
                             label="Correo Electronico"
                             value={value}
                             onChangeText={onChange}
@@ -93,10 +95,10 @@ export default function SignIn() {
                 disabled={loading}
             />
              <View style={styles.footer}>
-                    <Text style={styles.footerText}>
+                    <Text style={[styles.footerText, { color: colors.textSecondary }]}>
                     ¿No tienes una cuenta?{' '}
                     <TouchableOpacity onPress={() => router.push('/SignUp')}>
-                        <Text style={styles.linkText}>Regístrate</Text>
+                        <Text style={[styles.linkText, { color: colors.primary }]}>Regístrate</Text>
                     </TouchableOpacity>
                     </Text>
                 </View>
@@ -120,12 +122,10 @@ const styles = StyleSheet.create({
         gap: Spacing.lg,
     },
     errorText: {
-    color: '#dc2626',
-    textAlign: 'center',
-    fontFamily: 'Roboto',
+        textAlign: 'center',
+        fontFamily: 'Roboto',
     },
     errorMessage: {
-        color: '#dc2626',
         fontSize: 14,
         fontFamily: 'Roboto',
     },
@@ -135,10 +135,8 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontFamily: 'Roboto',
-        color: '#666',
     },
     linkText: {
-        color: '#6366f1',
         fontFamily: 'RobotoBold',
     },
 });

@@ -23,11 +23,12 @@ const signUpSchema = z.object({
     path: ["confirm"]
 });
 
-type SignUpForm = z.infer<typeof signUpSchema>; 
+type SignUpForm = z.infer<typeof signUpSchema>;
 
 export default function SignUp() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { colors } = useTheme();
 
     const {control, handleSubmit, formState: { errors } } = useForm<SignUpForm>({
         resolver: zodResolver(signUpSchema)
@@ -68,13 +69,11 @@ export default function SignUp() {
         }
     };
 
-    const { colors } = useTheme();
-
     return(
         <KeyboardAvoidingView style = {styles.container}>
 
-            <Text 
-            style={[styles.cardTitle, 
+            <Text
+            style={[styles.cardTitle,
             { color: colors.text }]}>
                 Registrarse
             </Text>
@@ -93,7 +92,7 @@ export default function SignUp() {
                         keyboardType="email-address"
                         error={errors.email?.message}
                         />
-                    </View>  
+                    </View>
                 )}
             />
             <Controller
@@ -153,13 +152,13 @@ export default function SignUp() {
                 onPress={handleSubmit(onSubmit)}
                 disabled={loading}
             />
-            <View 
+            <View
             style={styles.footer}
             >
-                <Text style={styles.footerText}>
+                <Text style={[styles.footerText, { color: colors.textSecondary }]}>
                     ¿Ya tienes una cuenta?{' '}
                     <TouchableOpacity onPress={() => router.push('/SignIn')}>
-                        <Text style={styles.linkText}>Inicia Sesion</Text>
+                        <Text style={[styles.linkText, { color: colors.primary }]}>Inicia Sesion</Text>
                     </TouchableOpacity>
                 </Text>
             </View>
@@ -179,12 +178,10 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.lg,
     },
     errorText: {
-    color: '#dc2626',
-    textAlign: 'center',
-    fontFamily: 'Roboto',
+        textAlign: 'center',
+        fontFamily: 'Roboto',
     },
     errorMessage: {
-        color: '#dc2626',
         fontSize: 14,
         fontFamily: 'Roboto',
     },
@@ -194,10 +191,8 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontFamily: 'Roboto',
-        color: '#666',
     },
     linkText: {
-        color: '#6366f1',
         fontFamily: 'RobotoBold',
     },
 })

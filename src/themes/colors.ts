@@ -5,19 +5,19 @@
 export const Colors = {
   light: {
     // Fondos
-    background: "#FFFFFF",
-    surface: "#F5F5F5",
-    surfaceVariant: "#E8E8E8",
+    background: "#c2e0e0",
+    surface: "#d4eaea",
+    surfaceVariant: "#b0d4d4",
 
     // Textos
-    text: "#1A1A1A",
-    textSecondary: "#666666",
-    textTertiary: "#999999",
+    text: "#1a3a3a",
+    textSecondary: "#2e6a5a",
+    textTertiary: "#ffffff",
 
     // Primarios
-    primary: "#007AFF",
-    primaryLight: "#4DA2FF",
-    primaryDark: "#0055CC",
+    primary: "#2e8a70",
+    primaryLight: "#3da882",
+    primaryDark: "#1f6b55",
 
     // Estados
     error: "#DC3545",
@@ -25,32 +25,32 @@ export const Colors = {
     warning: "#FFC107",
 
     // Bordes y separadores
-    border: "#E0E0E0",
-    divider: "#EEEEEE",
+    border: "#a0cfc0",
+    divider: "#b5d8d0",
 
     // Especiales
     favorite: "#FFD700",
-    icon: "#666666",
-    placeholder: "#AAAAAA",
-    card: "#FFFFFF",
-    tabs: "#ffffff",
+    icon: "#2e8a70",
+    placeholder: "#6aab9a",
+    card: "#2e8a70",
+    tabs: "#c2e0e0",
   },
 
   dark: {
     // Fondos
-    background: "#0c0c22",
-    surface: "#1E1E1E",
-    surfaceVariant: "#2C2C2C",
+    background: "#32214f",
+    surface: "#3d2d5e",
+    surfaceVariant: "#4a3a6a",
 
     // Textos
-    text: "#FFFFFF",
-    textSecondary: "#AAAAAA",
-    textTertiary: "#777777",
+    text: "#c2e0e0",
+    textSecondary: "#a0c0c0",
+    textTertiary: "#c2e0e0",
 
     // Primarios
-    primary: "#0A84FF",
-    primaryLight: "#4DA2FF",
-    primaryDark: "#0055CC",
+    primary: "#5f547d",
+    primaryLight: "#7a6f96",
+    primaryDark: "#4a3f68",
 
     // Estados
     error: "#FF453A",
@@ -58,15 +58,15 @@ export const Colors = {
     warning: "#FFD60A",
 
     // Bordes y separadores
-    border: "#3A3A3A",
-    divider: "#2C2C2C",
+    border: "#5f547d",
+    divider: "#4a3a6a",
 
     // Especiales
     favorite: "#FFD700",
-    icon: "#AAAAAA",
-    placeholder: "#666666",
-    card: "#24264e",
-    tabs: "#181a33",
+    icon: "#c2e0e0",
+    placeholder: "#8a7fa5",
+    card: "#5f547d",
+    tabs: "#32214f",
   },
 } as const;
 

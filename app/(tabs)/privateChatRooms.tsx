@@ -2,6 +2,7 @@ import { joinRoom, leaveRoom } from "@/src/actions";
 import {
   Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle
 } from "@/src/components/ui";
+import { useTheme } from "@/src/hooks";
 import { supabase } from "@/src/lib/supabase";
 import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +22,7 @@ export default function PrivateChatRooms() {
   const [user, setUser] = useState<any>(null)
   const [joinedRooms, setJoinedRooms] = useState<Room[]>([])
   const [loading, setLoading] = useState(true)
+  const { colors } = useTheme()
 
   async function loadData() {
     const currentUser = await getCurrentUser()
@@ -68,7 +70,7 @@ export default function PrivateChatRooms() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <RoomList
         title="Tus Chats Privados"
         rooms={joinedRooms}
@@ -90,12 +92,13 @@ function RoomList({
   isJoined: boolean,
   onAction: () => void
 }) {
+  const { colors } = useTheme()
   if (rooms.length === 0) return null
 
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
         <Button
           title="Crear un nuevo chat"
           onPress={() => router.push("/rooms/newRoomPage")}
@@ -122,6 +125,7 @@ function RoomCard({
   onAction,
 }: Room & { isJoined: boolean; onAction: () => void }) {
   const [loadingAction, setLoadingAction] = useState(false)
+  const { colors } = useTheme()
 
   async function handleJoin() {
     setLoadingAction(true);
@@ -138,10 +142,10 @@ function RoomCard({
   }
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{name}</Text>
-        <Text style={styles.cardDescription}>
+        <Text style={[styles.cardTitle, { color: colors.textTertiary }]}>{name}</Text>
+        <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
           {memberCount} {memberCount === 1 ? "miembro" : "miembros"}
         </Text>
       </View>
@@ -149,28 +153,28 @@ function RoomCard({
         {isJoined ? (
           <>
             <TouchableOpacity
-              style={[styles.btn, styles.btnPrimary, { flex: 1, marginRight: 8 }]}
+              style={[styles.btn, { backgroundColor: colors.primary, flex: 1, marginRight: 8 }]}
               onPress={() => router.push({ pathname: "/rooms/[id]", params: { id } })}
             >
-              <Text style={styles.btnText}>Entrar</Text>
+              <Text style={[styles.btnText, { color: colors.textTertiary }]}>Entrar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.btn, styles.btnDanger]}
+              style={[styles.btn, { backgroundColor: colors.error }]}
               onPress={handleLeave}
               disabled={loadingAction}
             >
-              <Text style={styles.btnText}>
+              <Text style={[styles.btnText, { color: colors.textTertiary }]}>
                 {loadingAction ? "..." : "Salir"}
               </Text>
             </TouchableOpacity>
           </>
         ) : (
           <TouchableOpacity
-            style={[styles.btn, styles.btnOutline, { flex: 1 }]}
+            style={[styles.btn, { borderWidth: 1, borderColor: colors.primary, flex: 1 }]}
             onPress={handleJoin}
             disabled={loadingAction}
           >
-            <Text style={styles.btnOutlineText}>
+            <Text style={[styles.btnOutlineText, { color: colors.primary }]}>
               {loadingAction ? "Uniéndose..." : "Unirse"}
             </Text>
           </TouchableOpacity>
@@ -204,15 +208,12 @@ const styles = StyleSheet.create({
   section: { gap: 12 },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   sectionTitle: { fontSize: 20, fontWeight: "600" },
-  card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  card: { borderRadius: 12, padding: 16, marginBottom: 10, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   cardHeader: { marginBottom: 12, gap: 4 },
   cardTitle: { fontSize: 16, fontWeight: "600" },
-  cardDescription: { fontSize: 13, color: "#6b7280" },
+  cardDescription: { fontSize: 13 },
   cardFooter: { flexDirection: "row" },
   btn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  btnPrimary: { backgroundColor: "#6366f1" },
-  btnDanger: { backgroundColor: "#ef4444" },
-  btnOutline: { borderWidth: 1, borderColor: "#6366f1" },
-  btnText: { color: "#fff", fontWeight: "500", fontSize: 13 },
-  btnOutlineText: { color: "#6366f1", fontWeight: "500", fontSize: 13 },
+  btnText: { fontWeight: "500", fontSize: 13 },
+  btnOutlineText: { fontWeight: "500", fontSize: 13 },
 })

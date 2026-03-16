@@ -1,3 +1,4 @@
+import { useTheme } from "@/src/hooks"
 import { supabase } from "@/src/lib/supabase"
 import { getCurrentUser } from "@/src/services/getCurrentUser"
 import { router, useLocalSearchParams, } from "expo-router"
@@ -28,6 +29,7 @@ type Message = {
 
 export default function roomPage(){
     const { id } = useLocalSearchParams<{ id: string }>()
+    const { colors } = useTheme()
 
     const [ room, setRoom ] = useState<Room | null>(null)
     const [ userProfile, setUserProfile ] = useState<UserProfile | null>(null)
@@ -126,24 +128,24 @@ export default function roomPage(){
     // mas genericas
     return (
         <KeyboardAvoidingView
-            style={styles.container}
+            style={[styles.container, { backgroundColor: colors.background }]}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={90}
         >
-            <View style={styles.header}>
+            <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
                 <TouchableOpacity onPress={() =>
                     room?.FK_group_id
                         ? router.replace({ pathname: "/groups/[id]" as any, params: { id: room.FK_group_id } })
                         : router.replace("/(tabs)/privateChatRooms")
                 }>
-                    <Text style={styles.backBtn}> Volver</Text>
+                    <Text style={[styles.backBtn, { color: colors.primary }]}> Volver</Text>
                 </TouchableOpacity>
-                <Text style={styles.roomName}>{room?.name}</Text>
+                <Text style={[styles.roomName, { color: colors.text }]}>{room?.name}</Text>
             </View>
             <FlatList
                 data={message}
                 keyExtractor={(item)=>item.id.toString()}
-                inverted 
+                inverted
                 contentContainerStyle={styles.messagesList}
                 renderItem={({ item }) => (
                     <MessageBubble
@@ -153,26 +155,27 @@ export default function roomPage(){
                 )}
                 ListEmptyComponent={
                     <View style={styles.emptyMessages}>
-                        <Text style={styles.emptyText}>No hay mensajes aun...</Text>
+                        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No hay mensajes aun...</Text>
                     </View>
                 }
             />
-            <View style={styles.inputRow}>
-                
+            <View style={[styles.inputRow, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.surfaceVariant, color: colors.text }]}
                     value={newMessage}
                     onChangeText={setNewMessage}
                     placeholder="Escriba un Mensaje"
+                    placeholderTextColor={colors.placeholder}
                     multiline
                     maxLength={500}
                 />
                 <TouchableOpacity
-                    style={[styles.sendBtn, (!newMessage.trim() || sending) && styles.sendBtnDisabled]}
+                    style={[styles.sendBtn, { backgroundColor: colors.primary }, (!newMessage.trim() || sending) && { backgroundColor: colors.primaryLight }]}
                     onPress={handleSend}
                     disabled={!newMessage.trim() || sending}
                 >
-                    <Text style={styles.sendBtnText}>{sending ? "..." : "Enviar"}</Text>
+                    <Text style={[styles.sendBtnText, { color: colors.textTertiary }]}>{sending ? "..." : "Enviar"}</Text>
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
@@ -182,6 +185,7 @@ export default function roomPage(){
 // Para lo que estoy haciendo esto se queda aca, pero creo que si o si esto ira a componentes fijo
 // Ojala adaptar todo esto sea sencillo...
 function MessageBubble({message, isOwn}: { message: Message, isOwn: boolean }){
+    const { colors } = useTheme()
     const time = new Date(message.created_at).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -190,14 +194,19 @@ function MessageBubble({message, isOwn}: { message: Message, isOwn: boolean }){
     return(
         <View style={[styles.bubbleWrapper, isOwn ? styles.bubbleRight : styles.bubbleLeft]}>
             {!isOwn && (
-                <Text style={styles.bubbleAuthor}>{message.author?.username ?? "Desconocido"}</Text>
+                <Text style={[styles.bubbleAuthor, { color: colors.textSecondary }]}>{message.author?.username ?? "Desconocido"}</Text>
             )}
-            <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
-                <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn]}>
+            <View style={[
+                styles.bubble,
+                isOwn
+                    ? [styles.bubbleOwn, { backgroundColor: colors.primary }]
+                    : [styles.bubbleOther, { backgroundColor: colors.surface, borderColor: colors.border }]
+            ]}>
+                <Text style={[styles.bubbleText, { color: isOwn ? colors.textTertiary : colors.text }]}>
                     {message.content}
                 </Text>
             </View>
-            <Text style={[styles.bubbleTime, isOwn && { textAlign: "right" }]}>{time}</Text>
+            <Text style={[styles.bubbleTime, { color: colors.textSecondary }, isOwn && { textAlign: "right" }]}>{time}</Text>
         </View>
     )
 }
@@ -249,120 +258,98 @@ async function getMessage(roomId: string): Promise<Message[]> {
     })) as Message[]
 }
 
-//urgentemente hay que nuckear esto y usar el useTheme que no esta de adorno al menos con los colores
 const styles = StyleSheet.create({
-    center: { 
-        flex: 1, 
-        justifyContent: "center", 
-        alignItems: "center" 
+    center: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center"
     },
-    container: { 
-        flex: 1, 
-        backgroundColor: "#f9fafb" 
+    container: {
+        flex: 1,
     },
-    header: { 
-        flexDirection: "row", 
-        alignItems: "center", 
-        gap: 12, 
-        padding: 16, 
-        backgroundColor: "#fff", 
-        borderBottomWidth: 1, 
-        borderBottomColor: "#e5e7eb" 
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 12,
+        padding: 16,
+        borderBottomWidth: 1,
     },
-    backBtn: { 
-        color: "#6366f1", 
-        fontSize: 15 
+    backBtn: {
+        fontSize: 15
     },
-    roomName: { 
-        fontSize: 17, 
-        fontWeight: "600", 
-        flex: 1 
+    roomName: {
+        fontSize: 17,
+        fontWeight: "600",
+        flex: 1
     },
-    messagesList: { 
-        padding: 16, 
-        gap: 8 
+    messagesList: {
+        padding: 16,
+        gap: 8
     },
-    emptyMessages: { 
-        flex: 1, 
-        alignItems: "center", 
-        marginTop: 40 
+    emptyMessages: {
+        flex: 1,
+        alignItems: "center",
+        marginTop: 40
     },
-    emptyText: { 
-        color: "#9ca3af", 
-        fontSize: 14 
+    emptyText: {
+        fontSize: 14
     },
-    bubbleWrapper: { 
-        marginBottom: 10, 
-        maxWidth: "75%" 
+    bubbleWrapper: {
+        marginBottom: 10,
+        maxWidth: "75%"
     },
-    bubbleLeft: { 
-        alignSelf: "flex-start" 
+    bubbleLeft: {
+        alignSelf: "flex-start"
     },
-    bubbleRight: { 
-        alignSelf: "flex-end" 
+    bubbleRight: {
+        alignSelf: "flex-end"
     },
-    bubbleAuthor: { 
-        fontSize: 11, 
-        color: "#6b7280", 
-        marginBottom: 2, 
-        marginLeft: 4 
+    bubbleAuthor: {
+        fontSize: 11,
+        marginBottom: 2,
+        marginLeft: 4
     },
-    bubble: { 
-        borderRadius: 16, 
-        paddingVertical: 8, 
-        paddingHorizontal: 12 
+    bubble: {
+        borderRadius: 16,
+        paddingVertical: 8,
+        paddingHorizontal: 12
     },
-    bubbleOwn: { 
-        backgroundColor: "#6366f1", 
-        borderBottomRightRadius: 4 
+    bubbleOwn: {
+        borderBottomRightRadius: 4
     },
-    bubbleOther: { 
-        backgroundColor: 
-        "#fff", borderBottomLeftRadius: 4, 
-        borderWidth: 1, 
-        borderColor: "#e5e7eb" 
+    bubbleOther: {
+        borderBottomLeftRadius: 4,
+        borderWidth: 1,
     },
-    bubbleText: { 
-        fontSize: 14, 
-        color: "#111827" 
+    bubbleText: {
+        fontSize: 14,
     },
-    bubbleTextOwn: { 
-        color: "#fff" 
+    bubbleTime: {
+        fontSize: 10,
+        marginTop: 2,
+        marginHorizontal: 4
     },
-    bubbleTime: { 
-        fontSize: 10, 
-        color: "#9ca3af", 
-        marginTop: 2, 
-        marginHorizontal: 4 
+    inputRow: {
+        flexDirection: "row",
+        padding: 12,
+        gap: 8,
+        borderTopWidth: 1,
     },
-    inputRow: { 
-        flexDirection: "row", 
-        padding: 12, 
-        gap: 8, 
-        backgroundColor: "#fff", 
-        borderTopWidth: 1, 
-        borderTopColor: "#e5e7eb" 
+    input: {
+        flex: 1,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        fontSize: 14,
+        maxHeight: 100
     },
-    input: { 
-        flex: 1, 
-        backgroundColor: "#f3f4f6", 
-        borderRadius: 20, 
-        paddingHorizontal: 16, 
-        paddingVertical: 8, 
-        fontSize: 14, 
-        maxHeight: 100 
+    sendBtn: {
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        justifyContent: "center"
     },
-    sendBtn: { 
-        backgroundColor: "#6366f1", 
-        borderRadius: 20, paddingHorizontal: 16, 
-        justifyContent: "center" 
-    },
-    sendBtnDisabled: { 
-        backgroundColor: "#c7d2fe" 
-    },
-    sendBtnText: { 
-        color: "#fff", 
-        fontWeight: "600", 
-        fontSize: 14 
+    sendBtnText: {
+        fontWeight: "600",
+        fontSize: 14
     },
 })

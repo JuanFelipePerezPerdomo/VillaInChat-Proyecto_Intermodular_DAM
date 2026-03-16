@@ -1,5 +1,6 @@
 import { createRoom } from '@/src/actions/rooms';
 import { Button, Card, Input, LoadingSwap } from '@/src/components/ui';
+import { useTheme } from '@/src/hooks';
 import { createRoomSchema } from "@/src/schemas/roomSchema";
 import { Spacing, Typography } from "@/src/themes";
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +19,7 @@ const CHAT_TYPE_OPTIONS: { value: FormData["chatType"]; label: string; descripti
 ]
 
 export default function newRoomPage(){
+    const { colors } = useTheme()
     const { control, handleSubmit, formState: {errors, isSubmitting}} = useForm<FormData>({
         defaultValues: {
             name: "",
@@ -46,7 +48,7 @@ export default function newRoomPage(){
         <KeyboardAvoidingView style={styles.container}>
             <SafeAreaView style={styles.viewContainer}>
                 <Card style={styles.card}>
-                    <Text style={styles.cardTitle}>Crear un nuevo chat </Text>
+                    <Text style={[styles.cardTitle, { color: colors.text }]}>Crear un nuevo chat </Text>
                     <Controller
                         control={control}
                         name="name"
@@ -69,17 +71,25 @@ export default function newRoomPage(){
                         name="chatType"
                         render={({ field: { onChange, value } }) => (
                             <View style={styles.typeContainer}>
-                                <Text style={styles.typeLabel}>Tipo de chat</Text>
+                                <Text style={[styles.typeLabel, { color: colors.text }]}>Tipo de chat</Text>
                                 {CHAT_TYPE_OPTIONS.map((option) => (
                                     <TouchableOpacity
                                         key={option.value}
-                                        style={[styles.typeOption, value === option.value && styles.typeOptionSelected]}
+                                        style={[
+                                            styles.typeOption,
+                                            { borderColor: colors.border },
+                                            value === option.value && { borderColor: colors.primary, backgroundColor: colors.primary + "1a" }
+                                        ]}
                                         onPress={() => onChange(option.value)}
                                     >
-                                        <Text style={[styles.typeOptionLabel, value === option.value && styles.typeOptionLabelSelected]}>
+                                        <Text style={[
+                                            styles.typeOptionLabel,
+                                            { color: colors.text },
+                                            value === option.value && { color: colors.primary }
+                                        ]}>
                                             {option.label}
                                         </Text>
-                                        <Text style={styles.typeOptionDesc}>{option.description}</Text>
+                                        <Text style={[styles.typeOptionDesc, { color: colors.textSecondary }]}>{option.description}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -126,12 +136,10 @@ const styles = StyleSheet.create({
         gap: Spacing.lg,
     },
     errorText: {
-    color: '#dc2626',
-    textAlign: 'center',
-    fontFamily: 'Roboto',
+        textAlign: 'center',
+        fontFamily: 'Roboto',
     },
     errorMessage: {
-        color: '#dc2626',
         fontSize: 14,
         fontFamily: 'Roboto',
     },
@@ -141,17 +149,15 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontFamily: 'Roboto',
-        color: '#666',
     },
     linkText: {
-        color: '#6366f1',
         fontFamily: 'RobotoBold',
     },
     checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.sm,
+        marginTop: Spacing.md,
     },
     checkbox: {
         width: 28,
@@ -178,25 +184,15 @@ const styles = StyleSheet.create({
     },
     typeOption: {
         borderWidth: 1,
-        borderColor: '#d1d5db',
         borderRadius: 8,
         padding: Spacing.md,
         gap: 2,
     },
-    typeOptionSelected: {
-        borderColor: '#6366f1',
-        backgroundColor: '#eef2ff',
-    },
     typeOptionLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#374151',
-    },
-    typeOptionLabelSelected: {
-        color: '#6366f1',
     },
     typeOptionDesc: {
         fontSize: 12,
-        color: '#6b7280',
     },
 });

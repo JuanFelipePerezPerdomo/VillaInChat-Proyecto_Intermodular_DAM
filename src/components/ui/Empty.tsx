@@ -1,13 +1,6 @@
+import { useTheme } from "@/src/hooks";
 import React from "react";
 import { StyleSheet, Text, TextStyle, View, ViewStyle } from "react-native";
-
-// Tokens de color (ajústalos a tu tema)
-const colors = {
-  muted: "#f1f5f9",
-  mutedForeground: "#64748b",
-  foreground: "#0f172a",
-  border: "#e2e8f0",
-};
 
 // ─── Empty ───────────────────────────────────────────────
 type EmptyProps = {
@@ -16,8 +9,9 @@ type EmptyProps = {
 };
 
 export function Empty({ children, style }: EmptyProps) {
+  const { colors } = useTheme();
   return (
-    <View style={[styles.empty, style]}>
+    <View style={[styles.empty, { borderColor: colors.border }, style]}>
       {children}
     </View>
   );
@@ -47,11 +41,12 @@ type EmptyMediaProps = {
 };
 
 export function EmptyMedia({ children, variant = "default", style }: EmptyMediaProps) {
+  const { colors } = useTheme();
   return (
     <View
       style={[
         styles.emptyMediaBase,
-        variant === "icon" ? styles.emptyMediaIcon : styles.emptyMediaDefault,
+        variant === "icon" ? [styles.emptyMediaIcon, { backgroundColor: colors.surface }] : styles.emptyMediaDefault,
         style,
       ]}
     >
@@ -67,8 +62,9 @@ type EmptyTitleProps = {
 };
 
 export function EmptyTitle({ children, style }: EmptyTitleProps) {
+  const { colors } = useTheme();
   return (
-    <Text style={[styles.emptyTitle, style]}>
+    <Text style={[styles.emptyTitle, { color: colors.text }, style]}>
       {children}
     </Text>
   );
@@ -81,8 +77,9 @@ type EmptyDescriptionProps = {
 };
 
 export function EmptyDescription({ children, style }: EmptyDescriptionProps) {
+  const { colors } = useTheme();
   return (
-    <Text style={[styles.emptyDescription, style]}>
+    <Text style={[styles.emptyDescription, { color: colors.textSecondary }, style]}>
       {children}
     </Text>
   );
@@ -113,7 +110,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: colors.border,
     padding: 24,
   },
   emptyHeader: {
@@ -132,7 +128,6 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   emptyMediaIcon: {
-    backgroundColor: colors.muted,
     width: 40,
     height: 40,
     borderRadius: 8,
@@ -141,13 +136,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "500",
     letterSpacing: -0.3,
-    color: colors.foreground,
     textAlign: "center",
   },
   emptyDescription: {
     fontSize: 14,
     lineHeight: 22,
-    color: colors.mutedForeground,
     textAlign: "center",
   },
   emptyContent: {
@@ -158,4 +151,3 @@ const styles = StyleSheet.create({
     maxWidth: 384,
   },
 });
-
