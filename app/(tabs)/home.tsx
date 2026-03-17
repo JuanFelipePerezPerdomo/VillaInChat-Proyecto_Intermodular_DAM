@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -47,8 +47,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator />
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator color={colors.primary} />
       </View>
     )
   }
@@ -61,46 +61,50 @@ export default function Home() {
 
   if (groups.length === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Ionicons name="people-outline" size={42} />
-          </EmptyMedia>
-          <EmptyTitle> No hay ningun grupo creado </EmptyTitle>
-          <EmptyDescription> Espera a que un administrador cree un grupo</EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <Button
-            title="Refrescar"
-            onPress={() => router.push("/groups/newGroupPage")}
-          />
-        </EmptyContent>
-      </Empty>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Ionicons name="people-outline" size={42} color={colors.icon} />
+            </EmptyMedia>
+            <EmptyTitle> No hay ningun grupo creado </EmptyTitle>
+            <EmptyDescription> Espera a que un administrador cree un grupo</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button
+              title="Nuevo grupo"
+              onPress={() => router.push("/groups/newGroupPage")}
+            />
+          </EmptyContent>
+        </Empty>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.pageHeader}>
-        <Text style={[styles.pageTitle, { color: colors.text }]}>Grupos</Text>
-        <Button
-          title="Nuevo grupo"
-          onPress={() => router.push("/groups/newGroupPage" as any)}
-          size="small"
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.pageHeader}>
+          <Text style={[styles.pageTitle, { color: colors.text }]}>Grupos</Text>
+          <Button
+            title="Nuevo grupo"
+            onPress={() => router.push("/groups/newGroupPage" as any)}
+            size="small"
+          />
+        </View>
+        <GroupList
+          title="Tus Grupos"
+          groups={joinedGroups}
+          isJoined
+          onAction={loadData}
         />
-      </View>
-      <GroupList
-        title="Tus Grupos"
-        groups={joinedGroups}
-        isJoined
-        onAction={loadData}
-      />
-      <GroupList
-        title="Grupos Disponibles"
-        groups={notJoinedGroups}
-        isJoined={false}
-        onAction={loadData}
-      />
+        <GroupList
+          title="Grupos Disponibles"
+          groups={notJoinedGroups}
+          isJoined={false}
+          onAction={loadData}
+        />
+      </ScrollView>
     </SafeAreaView>
   )
 }
@@ -116,12 +120,11 @@ function GroupList({
   isJoined: boolean,
   onAction: () => void
 }) {
-  const { colors } = useTheme()
   if (groups.length === 0) return null
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={styles.sectionTitle}>{title}</Text>
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id}
@@ -142,7 +145,6 @@ function GroupCard({
   onAction,
 }: Group & { isJoined: boolean; onAction: () => void }) {
   const [loadingAction, setLoadingAction] = useState(false)
-  const { colors } = useTheme()
 
   async function handleJoin() {
     setLoadingAction(true)
@@ -159,10 +161,10 @@ function GroupCard({
   }
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.card, shadowColor: colors.text }]}>
+    <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={[styles.cardTitle, { color: colors.textTertiary }]}>{name}</Text>
-        <Text style={[styles.cardDescription, { color: colors.textTertiary }]}>
+        <Text style={styles.cardTitle}>{name}</Text>
+        <Text style={styles.cardDescription}>
           {memberCount} {memberCount === 1 ? "miembro" : "miembros"}
         </Text>
       </View>
@@ -170,28 +172,28 @@ function GroupCard({
         {isJoined ? (
           <>
             <TouchableOpacity
-              style={[styles.btn, { backgroundColor: colors.primary, flex: 1, marginRight: 8 }]}
+              style={[styles.btn, styles.btnPrimary, { flex: 1, marginRight: 8 }]}
               onPress={() => router.push({ pathname: "/groups/[id]" as any, params: { id } })}
             >
-              <Text style={[styles.btnText, { color: colors.textTertiary }]}>Entrar</Text>
+              <Text style={styles.btnText}>Entrar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.btn, { backgroundColor: colors.error }]}
+              style={[styles.btn, styles.btnDanger]}
               onPress={handleLeave}
               disabled={loadingAction}
             >
-              <Text style={[styles.btnText, { color: colors.textTertiary }]}>
+              <Text style={styles.btnText}>
                 {loadingAction ? "..." : "Salir"}
               </Text>
             </TouchableOpacity>
           </>
         ) : (
           <TouchableOpacity
-            style={[styles.btn, { borderWidth: 1, borderColor: colors.primary, flex: 1 }]}
+            style={[styles.btn, styles.btnOutline, { flex: 1 }]}
             onPress={handleJoin}
             disabled={loadingAction}
           >
-            <Text style={[styles.btnOutlineText, { color: colors.primary }]}>
+            <Text style={styles.btnOutlineText}>
               {loadingAction ? "Uniéndose..." : "Unirse"}
             </Text>
           </TouchableOpacity>
@@ -234,17 +236,22 @@ async function getJoinedGroups(userId: string): Promise<Group[]> {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 24 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { flex: 1 },
+  scrollContainer: { flexGrow: 1, padding: 16, gap: 24 },
   pageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   pageTitle: { fontSize: 22, fontWeight: "700" },
   section: { gap: 12 },
   sectionTitle: { fontSize: 20, fontWeight: "600" },
-  card: { borderRadius: 12, padding: 16, marginBottom: 10, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   cardHeader: { marginBottom: 12, gap: 4 },
   cardTitle: { fontSize: 16, fontWeight: "600" },
-  cardDescription: { fontSize: 13 },
+  cardDescription: { fontSize: 13, color: "#6b7280" },
   cardFooter: { flexDirection: "row" },
   btn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  btnText: { fontWeight: "500", fontSize: 13 },
-  btnOutlineText: { fontWeight: "500", fontSize: 13 },
+  btnPrimary: { backgroundColor: "#6366f1" },
+  btnDanger: { backgroundColor: "#ef4444" },
+  btnOutline: { borderWidth: 1, borderColor: "#6366f1" },
+  btnText: { color: "#fff", fontWeight: "500", fontSize: 13 },
+  btnOutlineText: { color: "#6366f1", fontWeight: "500", fontSize: 13 },
 })

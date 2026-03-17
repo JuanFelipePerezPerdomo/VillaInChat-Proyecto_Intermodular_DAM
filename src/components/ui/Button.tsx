@@ -1,11 +1,12 @@
 import { useTheme } from "@/src/hooks/useTheme";
 import { BorderRadius, Spacing, Typography } from "@/src/themes";
+import { useState } from "react";
 import {
     ActivityIndicator,
+    Pressable,
     StyleSheet,
     Text,
     TextStyle,
-    TouchableOpacity,
     ViewStyle,
 } from "react-native";
 
@@ -33,6 +34,7 @@ export function Button({
     textStyle,
 }: ButtonProps) {
     const { colors } = useTheme();
+    const [hovered, setHovered] = useState(false);
 
     const isDisabled = disabled || loading;
 
@@ -40,14 +42,14 @@ export function Button({
         if (isDisabled) return colors.surfaceVariant;
         switch (variant) {
             case "primary":
-                return colors.primary;
+                return hovered ? colors.primaryDark : colors.primary;
             case "secondary":
-                return colors.surface;
+                return hovered ? colors.surfaceVariant : colors.surface;
             case "outline":
             case "ghost":
-                return "transparent";
+                return hovered ? colors.surface : "transparent";
             default:
-                return colors.primary;
+                return hovered ? colors.primaryDark : colors.primary;
         }
     };
 
@@ -69,8 +71,8 @@ export function Button({
     const getBorderColor = () => {
         if (variant === "outline") {
             return isDisabled ? colors.border : colors.primary;
-            }
-            return "transparent";
+        }
+        return "transparent";
     };
 
     const getPadding = () => {
@@ -84,61 +86,63 @@ export function Button({
         }
     };
 
-  const getFontStyle = () => {
-    switch (size) {
-        case "small":
-            return Typography.buttonSmall;
-        default:
-            return Typography.button;
-    }
-  };
+    const getFontStyle = () => {
+        switch (size) {
+            case "small":
+                return Typography.buttonSmall;
+            default:
+                return Typography.button;
+        }
+    };
 
     return (
-        <TouchableOpacity
+        <Pressable
             onPress={onPress}
             disabled={isDisabled}
-            activeOpacity={0.7}
-            style={[
+            onHoverIn={() => setHovered(true)}
+            onHoverOut={() => setHovered(false)}
+            style={({ pressed }) => [
                 styles.button,
                 {
-                backgroundColor: getBackgroundColor(),
-                borderColor: getBorderColor(),
-                ...getPadding(),
+                    backgroundColor: getBackgroundColor(),
+                    borderColor: getBorderColor(),
+                    opacity: pressed ? 0.8 : 1,
+                    ...getPadding(),
                 },
                 fullWidth && styles.fullWidth,
                 style,
             ]}
-            >
+        >
             {loading ? (
                 <ActivityIndicator color={getTextColor()} size="small" />
             ) : (
                 <Text
-                style={[
-                    styles.text,
-                    getFontStyle(),
-                    { color: getTextColor() },
-                    textStyle,
-                ]}
+                    style={[
+                        styles.text,
+                        getFontStyle(),
+                        { color: getTextColor() },
+                        textStyle,
+                    ]}
                 >
-                {title}
+                    {title}
                 </Text>
             )}
-        </TouchableOpacity>
+        </Pressable>
     );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-  },
-  fullWidth: {
-    width: "100%",
-  },
-  text: {
-    textAlign: "center",
-  },
+    button: {
+        borderRadius: BorderRadius.md,
+        borderWidth: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "row",
+    },
+    fullWidth: {
+        width: "100%",
+    },
+    text: {
+        textAlign: "center",
+    },
 });

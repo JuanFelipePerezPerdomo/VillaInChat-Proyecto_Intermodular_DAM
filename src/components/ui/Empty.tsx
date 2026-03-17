@@ -1,4 +1,5 @@
 import { useTheme } from "@/src/hooks";
+import { BorderRadius, Spacing, Typography } from "@/src/themes";
 import React from "react";
 import { StyleSheet, Text, TextStyle, View, ViewStyle } from "react-native";
 
@@ -46,7 +47,7 @@ export function EmptyMedia({ children, variant = "default", style }: EmptyMediaP
     <View
       style={[
         styles.emptyMediaBase,
-        variant === "icon" ? [styles.emptyMediaIcon, { backgroundColor: colors.surface }] : styles.emptyMediaDefault,
+        variant === "icon" ? [styles.emptyMediaIcon, { backgroundColor: colors.surfaceVariant }] : styles.emptyMediaDefault,
         style,
       ]}
     >
@@ -106,23 +107,23 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 24,
-    borderRadius: 8,
+    gap: Spacing.xl,
+    borderRadius: BorderRadius.md,
     borderWidth: 1,
     borderStyle: "dashed",
-    padding: 24,
+    padding: Spacing.xl,
   },
   emptyHeader: {
     flexDirection: "column",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.sm,
     maxWidth: 384,
   },
   emptyMediaBase: {
     flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   emptyMediaDefault: {
     backgroundColor: "transparent",
@@ -130,23 +131,20 @@ const styles = StyleSheet.create({
   emptyMediaIcon: {
     width: 40,
     height: 40,
-    borderRadius: 8,
+    borderRadius: BorderRadius.md,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: "500",
-    letterSpacing: -0.3,
+    ...Typography.h3,
     textAlign: "center",
   },
   emptyDescription: {
-    fontSize: 14,
-    lineHeight: 22,
+    ...Typography.bodySmall,
     textAlign: "center",
   },
   emptyContent: {
     flexDirection: "column",
     alignItems: "center",
-    gap: 16,
+    gap: Spacing.lg,
     width: "100%",
     maxWidth: 384,
   },

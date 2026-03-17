@@ -1,10 +1,11 @@
-import { Input } from "@/src/components/ui";
+import { Button, Input } from "@/src/components/ui";
 import { useTheme } from "@/src/hooks";
 import { supabase } from "@/src/lib/supabase";
-import { Spacing, Typography } from "@/src/themes";
+import { BorderRadius, Spacing, Typography } from "@/src/themes";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Button, KeyboardAvoidingView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useRef, useState } from "react";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -24,13 +25,13 @@ export default function SignIn() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const { colors } = useTheme();
+    const passwordRef = useRef<TextInput>(null);
 
     const { control, handleSubmit, formState: {errors} } = useForm<SignInForm>({
         resolver: zodResolver(SignInSchema)
     });
 
     const onSubmit = async (data:SignInForm) => {
-
         try{
             setLoading(true);
             setError(null);
@@ -49,94 +50,137 @@ export default function SignIn() {
         }
     }
 
-    // los estilos ya se encarga Martin, al menos hare que esto muestre algo
     return(
-        <KeyboardAvoidingView>
-            <Text>Iniciar Sesion</Text>
-            <Controller
-                control={control}
-                name="email" // ya eventualmente intentaremos hacer que este login en vez de email DNI/NIE/Passaporte
-                render={({ field: { onChange, value }}) => (
-                    <View>
-                        <Input // hacer un input personalizado en components/ui
-                            label="Correo Electronico"
-                            value={value}
-                            onChangeText={onChange}
-                            placeholder="Inserte su correo"
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            keyboardType="email-address"
-                            error={errors.email?.message}
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+            <KeyboardAvoidingView
+                style={styles.flex}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+            >
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View style={styles.headerSection}>
+                        <Text style={[styles.title, { color: colors.text }]}>Iniciar Sesion</Text>
+                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                            Bienvenido de vuelta
+                        </Text>
+                    </View>
+
+                    <View style={styles.form}>
+                        {error && (
+                            <View style={[styles.errorContainer, { backgroundColor: colors.error + '15', borderColor: colors.error + '30' }]}>
+                                <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+                            </View>
+                        )}
+
+                        <Controller
+                            control={control}
+                            name="email"
+                            render={({ field: { onChange, value }}) => (
+                                <Input
+                                    label="Correo Electronico"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    placeholder="Inserte su correo"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    keyboardType="email-address"
+                                    returnKeyType="next"
+                                    onSubmitEditing={() => passwordRef.current?.focus()}
+                                    blurOnSubmit={false}
+                                    error={errors.email?.message}
+                                />
+                            )}
+                        />
+                        <Controller
+                            control={control}
+                            name="password"
+                            render={({ field: { onChange, value } }) => (
+                                <Input
+                                    ref={passwordRef}
+                                    label="Contraseña"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    placeholder="Inserte su contraseña"
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    secureTextEntry
+                                    returnKeyType="done"
+                                    onSubmitEditing={handleSubmit(onSubmit)}
+                                    error={errors.password?.message}
+                                />
+                            )}
+                        />
+
+                        <Button
+                            title="Iniciar Sesion"
+                            onPress={handleSubmit(onSubmit)}
+                            disabled={loading}
+                            loading={loading}
+                            fullWidth
                         />
                     </View>
-                )}
-            />
-            <Controller
-                control={control}
-                name="password"
-                render={({ field: { onChange, value } }) => (
-                    <View >
-                        <Input
-                            label="Contraseña"
-                            value={value}
-                            onChangeText={onChange}
-                            placeholder="Inserte su contraseña"
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            secureTextEntry
-                            error={errors.password?.message}
-                        />
+
+                    <View style={styles.footer}>
+                        <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+                            ¿No tienes una cuenta?{' '}
+                        </Text>
+                        <TouchableOpacity onPress={() => router.push('/SignUp')}>
+                            <Text style={[styles.linkText, { color: colors.primary }]}>Registrate</Text>
+                        </TouchableOpacity>
                     </View>
-                )}
-            />
-            <Button
-                title="Iniciar Sesion"
-                onPress={handleSubmit(onSubmit)}
-                disabled={loading}
-            />
-             <View style={styles.footer}>
-                    <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-                    ¿No tienes una cuenta?{' '}
-                    <TouchableOpacity onPress={() => router.push('/SignUp')}>
-                        <Text style={[styles.linkText, { color: colors.primary }]}>Regístrate</Text>
-                    </TouchableOpacity>
-                    </Text>
-                </View>
-        </KeyboardAvoidingView>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
 
-// aqui tiene que ir un const styles = StyleSheet.create({});
 const styles = StyleSheet.create({
-    container: {
+    safeArea: {
         flex: 1,
     },
-    card: {
-        marginBottom: Spacing.xl,
+    flex: {
+        flex: 1,
     },
-    cardTitle: {
-        ...Typography.h3,
-        marginBottom: Spacing.lg,
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        padding: Spacing.xl,
+    },
+    headerSection: {
+        alignItems: 'center',
+        marginBottom: Spacing.xxl,
+    },
+    title: {
+        ...Typography.h1,
+        marginBottom: Spacing.xs,
+    },
+    subtitle: {
+        ...Typography.body,
     },
     form: {
         gap: Spacing.lg,
     },
-    errorText: {
-        textAlign: 'center',
-        fontFamily: 'Roboto',
+    errorContainer: {
+        padding: Spacing.md,
+        borderRadius: BorderRadius.md,
+        borderWidth: 1,
     },
-    errorMessage: {
-        fontSize: 14,
-        fontFamily: 'Roboto',
+    errorText: {
+        ...Typography.bodySmall,
+        textAlign: 'center',
     },
     footer: {
-        padding: 5,
+        flexDirection: 'row',
+        justifyContent: 'center',
         alignItems: 'center',
+        marginTop: Spacing.xxl,
     },
     footerText: {
-        fontFamily: 'Roboto',
+        ...Typography.body,
     },
     linkText: {
-        fontFamily: 'RobotoBold',
+        ...Typography.button,
     },
 });
