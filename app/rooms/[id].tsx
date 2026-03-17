@@ -1,9 +1,12 @@
-import { supabase } from "@/src/lib/supabase"
-import { getCurrentUser } from "@/src/services/getCurrentUser"
-import { router, useLocalSearchParams, } from "expo-router"
-import { useEffect, useState } from "react"
-import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native"
-import { FlatList, TextInput } from "react-native-gesture-handler"
+import { useTheme } from "@/src/hooks";
+import { supabase } from "@/src/lib/supabase";
+import { getCurrentUser } from "@/src/services/getCurrentUser";
+import { BorderRadius, Spacing, Typography } from "@/src/themes";
+import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Room = {
     chat_id: string,
@@ -26,15 +29,16 @@ type Message = {
     } | null
 }
 
-export default function roomPage(){
+export default function RoomPage() {
     const { id } = useLocalSearchParams<{ id: string }>()
 
-    const [ room, setRoom ] = useState<Room | null>(null)
-    const [ userProfile, setUserProfile ] = useState<UserProfile | null>(null)
-    const [ message, setMessage ] = useState<Message[]>([])
-    const [ newMessage, setNewMessage ] = useState("")
-    const [ loading, setLoading ] = useState(true)
-    const [ sending, setSending ] = useState(false)
+    const [room, setRoom] = useState<Room | null>(null)
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+    const [messages, setMessages] = useState<Message[]>([])
+    const [newMessage, setNewMessage] = useState("")
+    const [loading, setLoading] = useState(true)
+    const [sending, setSending] = useState(false)
+    const { colors } = useTheme()
 
     useEffect(() => {
         async function loadData() {
@@ -44,7 +48,6 @@ export default function roomPage(){
                 getMessage(id),
             ])
 
-            //Si no existe el usuario o la sala forza el ir atras
             if (roomData == null || profileData == null) {
                 router.replace("/home")
                 return
@@ -52,13 +55,12 @@ export default function roomPage(){
 
             setRoom(roomData)
             setUserProfile(profileData)
-            setMessage(messageData)
+            setMessages(messageData)
             setLoading(false)
         }
         loadData()
     }, [])
 
-    //Funciones en RealTime (intento 40)
     useEffect(() => {
         if (!id) return
 
@@ -73,7 +75,6 @@ export default function roomPage(){
                 filter: `FK_chat_id=eq.${id}`,
             },
             async (payload) => {
-                // Hacemos un Fetch del autor del nuevo mensaje para tener el username
                 const { data: author } = await supabase
                 .from("user_profile")
                 .select("username")
@@ -87,7 +88,7 @@ export default function roomPage(){
                     FK_author_id: payload.new.FK_author_id,
                     author: author ?? null,
                 }
-                setMessage((prev) => [newMsg, ...prev])
+                setMessages((prev) => [newMsg, ...prev])
             }
         )
         .subscribe()
@@ -116,88 +117,110 @@ export default function roomPage(){
 
     if (loading) {
         return (
-        <View style={styles.center}>
-            <ActivityIndicator />
-        </View>
+            <View style={[styles.center, { backgroundColor: colors.background }]}>
+                <ActivityIndicator color={colors.primary} />
+            </View>
         )
     }
 
-    // Necesitamos un Input personalizado para el chat, el que ya tenemos tiene utilidades
-    // mas genericas
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            keyboardVerticalOffset={90}
-        >
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() =>
-                    room?.FK_group_id
-                        ? router.replace({ pathname: "/groups/[id]" as any, params: { id: room.FK_group_id } })
-                        : router.replace("/(tabs)/privateChatRooms")
-                }>
-                    <Text style={styles.backBtn}> Volver</Text>
-                </TouchableOpacity>
-                <Text style={styles.roomName}>{room?.name}</Text>
-            </View>
-            <FlatList
-                data={message}
-                keyExtractor={(item)=>item.id.toString()}
-                inverted 
-                contentContainerStyle={styles.messagesList}
-                renderItem={({ item }) => (
-                    <MessageBubble
-                        message={item}
-                        isOwn={item.FK_author_id === userProfile?.user_id}
-                    />
-                )}
-                ListEmptyComponent={
-                    <View style={styles.emptyMessages}>
-                        <Text style={styles.emptyText}>No hay mensajes aun...</Text>
-                    </View>
-                }
-            />
-            <View style={styles.inputRow}>
-                
-                <TextInput
-                    style={styles.input}
-                    value={newMessage}
-                    onChangeText={setNewMessage}
-                    placeholder="Escriba un Mensaje"
-                    multiline
-                    maxLength={500}
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={["top"]}>
+            <KeyboardAvoidingView
+                style={styles.flex}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={0}
+            >
+                <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() =>
+                            room?.FK_group_id
+                                ? router.replace({ pathname: "/groups/[id]" as any, params: { id: room.FK_group_id } })
+                                : router.replace("/(tabs)/privateChatRooms")
+                        }
+                    >
+                        <Ionicons name="arrow-back" size={22} color={colors.primary} />
+                    </TouchableOpacity>
+                    <Text style={[styles.roomName, { color: colors.text }]}>{room?.name}</Text>
+                </View>
+
+                <FlatList
+                    style={[styles.flex, { backgroundColor: colors.background }]}
+                    data={messages}
+                    keyExtractor={(item) => item.id.toString()}
+                    inverted
+                    contentContainerStyle={styles.messagesList}
+                    renderItem={({ item }) => (
+                        <MessageBubble
+                            message={item}
+                            isOwn={item.FK_author_id === userProfile?.user_id}
+                        />
+                    )}
+                    ListEmptyComponent={
+                        <View style={styles.emptyMessages}>
+                            <Text style={[styles.emptyText, { color: colors.textTertiary }]}>No hay mensajes aun...</Text>
+                        </View>
+                    }
                 />
-                <TouchableOpacity
-                    style={[styles.sendBtn, (!newMessage.trim() || sending) && styles.sendBtnDisabled]}
-                    onPress={handleSend}
-                    disabled={!newMessage.trim() || sending}
-                >
-                    <Text style={styles.sendBtnText}>{sending ? "..." : "Enviar"}</Text>
-                </TouchableOpacity>
-            </View>
-        </KeyboardAvoidingView>
+
+                <View style={[styles.inputRow, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+                    <TextInput
+                        style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+                        value={newMessage}
+                        onChangeText={setNewMessage}
+                        placeholder="Escriba un Mensaje"
+                        placeholderTextColor={colors.placeholder}
+                        multiline
+                        maxLength={500}
+                    />
+                    <TouchableOpacity
+                        style={[
+                            styles.sendBtn,
+                            { backgroundColor: colors.primary },
+                            (!newMessage.trim() || sending) && { backgroundColor: colors.surfaceVariant },
+                        ]}
+                        onPress={handleSend}
+                        disabled={!newMessage.trim() || sending}
+                    >
+                        <Ionicons
+                            name="send"
+                            size={18}
+                            color={(!newMessage.trim() || sending) ? colors.textTertiary : "#fff"}
+                        />
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     )
 }
 
-// Para lo que estoy haciendo esto se queda aca, pero creo que si o si esto ira a componentes fijo
-// Ojala adaptar todo esto sea sencillo...
-function MessageBubble({message, isOwn}: { message: Message, isOwn: boolean }){
+function MessageBubble({ message, isOwn }: { message: Message, isOwn: boolean }) {
+    const { colors } = useTheme()
     const time = new Date(message.created_at).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
     })
 
-    return(
+    return (
         <View style={[styles.bubbleWrapper, isOwn ? styles.bubbleRight : styles.bubbleLeft]}>
             {!isOwn && (
-                <Text style={styles.bubbleAuthor}>{message.author?.username ?? "Desconocido"}</Text>
+                <Text style={[styles.bubbleAuthor, { color: colors.textSecondary }]}>
+                    {message.author?.username ?? "Desconocido"}
+                </Text>
             )}
-            <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
-                <Text style={[styles.bubbleText, isOwn && styles.bubbleTextOwn]}>
+            <View style={[
+                styles.bubble,
+                isOwn
+                    ? { backgroundColor: colors.primary, borderBottomRightRadius: 4 }
+                    : { backgroundColor: colors.card, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: colors.border }
+            ]}>
+                <Text style={[styles.bubbleText, { color: isOwn ? "#fff" : colors.text }]}>
                     {message.content}
                 </Text>
             </View>
-            <Text style={[styles.bubbleTime, isOwn && { textAlign: "right" }]}>{time}</Text>
+            <Text style={[styles.bubbleTime, { color: colors.textTertiary }, isOwn && { textAlign: "right" }]}>
+                {time}
+            </Text>
         </View>
     )
 }
@@ -206,7 +229,6 @@ async function getRoom(roomId: string): Promise<Room | null> {
     const user = await getCurrentUser()
     if (!user) return null
 
-    // Verifica que el usuario sea miembro de la sala
     const { data, error } = await supabase
     .from("chat_room")
     .select("chat_id, name, FK_group_id, chat_members!inner (FK_user_id)")
@@ -236,12 +258,12 @@ async function getUserProfile(): Promise<UserProfile | null> {
 async function getMessage(roomId: string): Promise<Message[]> {
     const { data, error } = await supabase
     .from("messages")
-    .select("id, content, created_at, content, FK_author_id, author:user_profile (username)")
+    .select("id, content, created_at, FK_author_id, author:user_profile (username)")
     .eq("FK_chat_id", roomId)
-    .order("created_at", {ascending: false})
+    .order("created_at", { ascending: false })
     .limit(50)
 
-    if(error || !data) return[]
+    if (error || !data) return []
 
     return data.map(msg => ({
         ...msg,
@@ -249,120 +271,50 @@ async function getMessage(roomId: string): Promise<Message[]> {
     })) as Message[]
 }
 
-//urgentemente hay que nuckear esto y usar el useTheme que no esta de adorno al menos con los colores
 const styles = StyleSheet.create({
-    center: { 
-        flex: 1, 
-        justifyContent: "center", 
-        alignItems: "center" 
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    safeArea: { flex: 1 },
+    flex: { flex: 1 },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: Spacing.md,
+        padding: Spacing.lg,
+        borderBottomWidth: 1,
     },
-    container: { 
-        flex: 1, 
-        backgroundColor: "#f9fafb" 
+    backButton: {
+        padding: Spacing.xs,
     },
-    header: { 
-        flexDirection: "row", 
-        alignItems: "center", 
-        gap: 12, 
-        padding: 16, 
-        backgroundColor: "#fff", 
-        borderBottomWidth: 1, 
-        borderBottomColor: "#e5e7eb" 
+    roomName: { ...Typography.h3, flex: 1 },
+    messagesList: { padding: Spacing.lg, gap: Spacing.sm },
+    emptyMessages: { flex: 1, alignItems: "center", marginTop: 40 },
+    emptyText: { ...Typography.bodySmall },
+    bubbleWrapper: { marginBottom: 10, maxWidth: "75%" },
+    bubbleLeft: { alignSelf: "flex-start" },
+    bubbleRight: { alignSelf: "flex-end" },
+    bubbleAuthor: { ...Typography.caption, marginBottom: 2, marginLeft: 4 },
+    bubble: { borderRadius: 16, paddingVertical: 8, paddingHorizontal: 12 },
+    bubbleText: { fontSize: 14 },
+    bubbleTime: { fontSize: 10, marginTop: 2, marginHorizontal: 4 },
+    inputRow: {
+        flexDirection: "row",
+        padding: Spacing.md,
+        gap: Spacing.sm,
+        borderTopWidth: 1,
     },
-    backBtn: { 
-        color: "#6366f1", 
-        fontSize: 15 
+    input: {
+        flex: 1,
+        borderRadius: BorderRadius.full,
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.sm,
+        ...Typography.bodySmall,
+        maxHeight: 100,
     },
-    roomName: { 
-        fontSize: 17, 
-        fontWeight: "600", 
-        flex: 1 
-    },
-    messagesList: { 
-        padding: 16, 
-        gap: 8 
-    },
-    emptyMessages: { 
-        flex: 1, 
-        alignItems: "center", 
-        marginTop: 40 
-    },
-    emptyText: { 
-        color: "#9ca3af", 
-        fontSize: 14 
-    },
-    bubbleWrapper: { 
-        marginBottom: 10, 
-        maxWidth: "75%" 
-    },
-    bubbleLeft: { 
-        alignSelf: "flex-start" 
-    },
-    bubbleRight: { 
-        alignSelf: "flex-end" 
-    },
-    bubbleAuthor: { 
-        fontSize: 11, 
-        color: "#6b7280", 
-        marginBottom: 2, 
-        marginLeft: 4 
-    },
-    bubble: { 
-        borderRadius: 16, 
-        paddingVertical: 8, 
-        paddingHorizontal: 12 
-    },
-    bubbleOwn: { 
-        backgroundColor: "#6366f1", 
-        borderBottomRightRadius: 4 
-    },
-    bubbleOther: { 
-        backgroundColor: 
-        "#fff", borderBottomLeftRadius: 4, 
-        borderWidth: 1, 
-        borderColor: "#e5e7eb" 
-    },
-    bubbleText: { 
-        fontSize: 14, 
-        color: "#111827" 
-    },
-    bubbleTextOwn: { 
-        color: "#fff" 
-    },
-    bubbleTime: { 
-        fontSize: 10, 
-        color: "#9ca3af", 
-        marginTop: 2, 
-        marginHorizontal: 4 
-    },
-    inputRow: { 
-        flexDirection: "row", 
-        padding: 12, 
-        gap: 8, 
-        backgroundColor: "#fff", 
-        borderTopWidth: 1, 
-        borderTopColor: "#e5e7eb" 
-    },
-    input: { 
-        flex: 1, 
-        backgroundColor: "#f3f4f6", 
-        borderRadius: 20, 
-        paddingHorizontal: 16, 
-        paddingVertical: 8, 
-        fontSize: 14, 
-        maxHeight: 100 
-    },
-    sendBtn: { 
-        backgroundColor: "#6366f1", 
-        borderRadius: 20, paddingHorizontal: 16, 
-        justifyContent: "center" 
-    },
-    sendBtnDisabled: { 
-        backgroundColor: "#c7d2fe" 
-    },
-    sendBtnText: { 
-        color: "#fff", 
-        fontWeight: "600", 
-        fontSize: 14 
+    sendBtn: {
+        borderRadius: BorderRadius.full,
+        width: 40,
+        height: 40,
+        alignItems: "center",
+        justifyContent: "center",
     },
 })

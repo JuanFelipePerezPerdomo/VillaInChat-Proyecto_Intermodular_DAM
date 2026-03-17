@@ -2,12 +2,13 @@ import { joinGroup, leaveGroup } from "@/src/actions";
 import {
   Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle
 } from "@/src/components/ui";
+import { useTheme } from "@/src/hooks";
 import { supabase } from "@/src/lib/supabase";
 import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -22,6 +23,7 @@ export default function Home() {
   const [groups, setGroups] = useState<Group[]>([])
   const [joinedGroups, setJoinedGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
+  const { colors } = useTheme()
 
   async function loadData() {
     const currentUser = await getCurrentUser()
@@ -45,8 +47,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator />
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator color={colors.primary} />
       </View>
     )
   }
@@ -59,46 +61,50 @@ export default function Home() {
 
   if (groups.length === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Ionicons name="people-outline" size={42} />
-          </EmptyMedia>
-          <EmptyTitle> No hay ningun grupo creado </EmptyTitle>
-          <EmptyDescription> Espera a que un administrador cree un grupo</EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <Button
-            title="Refrescar"
-            onPress={() => router.push("/groups/newGroupPage")}
-          />
-        </EmptyContent>
-      </Empty>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Ionicons name="people-outline" size={42} color={colors.icon} />
+            </EmptyMedia>
+            <EmptyTitle> No hay ningun grupo creado </EmptyTitle>
+            <EmptyDescription> Espera a que un administrador cree un grupo</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button
+              title="Nuevo grupo"
+              onPress={() => router.push("/groups/newGroupPage")}
+            />
+          </EmptyContent>
+        </Empty>
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.pageHeader}>
-        <Text style={styles.pageTitle}>Grupos</Text>
-        <Button
-          title="Nuevo grupo"
-          onPress={() => router.push("/groups/newGroupPage" as any)}
-          size="small"
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.pageHeader}>
+          <Text style={[styles.pageTitle, { color: colors.text }]}>Grupos</Text>
+          <Button
+            title="Nuevo grupo"
+            onPress={() => router.push("/groups/newGroupPage" as any)}
+            size="small"
+          />
+        </View>
+        <GroupList
+          title="Tus Grupos"
+          groups={joinedGroups}
+          isJoined
+          onAction={loadData}
         />
-      </View>
-      <GroupList
-        title="Tus Grupos"
-        groups={joinedGroups}
-        isJoined
-        onAction={loadData}
-      />
-      <GroupList
-        title="Grupos Disponibles"
-        groups={notJoinedGroups}
-        isJoined={false}
-        onAction={loadData}
-      />
+        <GroupList
+          title="Grupos Disponibles"
+          groups={notJoinedGroups}
+          isJoined={false}
+          onAction={loadData}
+        />
+      </ScrollView>
     </SafeAreaView>
   )
 }
@@ -230,7 +236,9 @@ async function getJoinedGroups(userId: string): Promise<Group[]> {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 24 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { flex: 1 },
+  scrollContainer: { flexGrow: 1, padding: 16, gap: 24 },
   pageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   pageTitle: { fontSize: 22, fontWeight: "700" },
   section: { gap: 12 },
