@@ -79,3 +79,7 @@ export type UpdateProfileData = {
   dni?: string;
   nie?: string;
 };
+
+// Types no relacionados con la DB:
+export { DEFAULT_SETTINGS } from "./settings";
+export type { Settings, ThemeMode } from "./settings";
