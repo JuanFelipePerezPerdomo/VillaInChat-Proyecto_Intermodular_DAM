@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -137,12 +137,12 @@ function GroupList({
   isJoined: boolean,
   onAction: () => void
 }) {
-  const { colors } = useTheme()
+  const { colors, isDark } = useTheme()
   if (groups.length === 0) return null
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: isDark ? colors.text : "#000000" }]}>{title}</Text>
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id}
@@ -163,7 +163,7 @@ function GroupCard({
   onAction,
 }: Group & { isJoined: boolean; onAction: () => void }) {
   const [loadingAction, setLoadingAction] = useState(false)
-  const { colors } = useTheme()
+  const { colors, isDark } = useTheme()
 
   async function handleJoin() {
     setLoadingAction(true)
@@ -186,8 +186,8 @@ function GroupCard({
       activeOpacity={isJoined ? 0.7 : 1}
     >
       <View style={styles.cardHeader}>
-        <Text style={[styles.cardTitle, { color: colors.text }]}>{name}</Text>
-        <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
+        <Text style={[styles.cardTitle, { color: isDark ? colors.text : "#000000" }]}>{name}</Text>
+        <Text style={[styles.cardDescription, { color: isDark ? colors.textSecondary : "#000000" }]}>
           {memberCount} {memberCount === 1 ? "miembro" : "miembros"}
         </Text>
       </View>
@@ -230,8 +230,9 @@ function WebGroupGrid({
   joinedGroups: Group[]
   onAction: () => void
 }) {
-  const { colors } = useTheme()
+  const { colors, isDark } = useTheme()
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [addHovered, setAddHovered] = useState(false)
 
   async function handlePress(group: Group, isJoined: boolean) {
     if (isJoined) {
@@ -256,20 +257,24 @@ function WebGroupGrid({
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.webScrollContainer}>
-        <Text style={[styles.webTitle, { color: colors.text }]}>grupos</Text>
-        <View style={[styles.webGrid, { borderColor: colors.border }]}>
+        <Text style={[styles.webTitle, { color: isDark ? colors.text : "#000000" }]}>grupos</Text>
+        <View style={styles.webGrid}>
           {items.map((group, index) => {
             if (group === null) {
               return (
-                <TouchableOpacity
+                <Pressable
                   key="__add__"
-                  style={[styles.webCard, { backgroundColor: colors.success, borderColor: colors.success }]}
+                  style={[styles.webCard, {
+                    backgroundColor: addHovered ? colors.primaryDark : colors.primary,
+                    borderColor: addHovered ? colors.primaryDark : colors.primary,
+                  }]}
                   onPress={() => router.push("/groups/newGroupPage" as any)}
-                  activeOpacity={0.8}
+                  onHoverIn={() => setAddHovered(true)}
+                  onHoverOut={() => setAddHovered(false)}
                 >
-                  <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={styles.webAddText}>Añadir nuevo Grupo</Text>
-                </TouchableOpacity>
+                  <Ionicons name="add" size={18} color={addHovered ? colors.onPrimaryHover : colors.onPrimary} />
+                  <Text style={[styles.webAddText, { color: addHovered ? colors.onPrimaryHover : colors.onPrimary }]}>Añadir nuevo Grupo</Text>
+                </Pressable>
               )
             }
             const isJoined = joinedGroups.some(jg => jg.id === group.id)
@@ -277,14 +282,14 @@ function WebGroupGrid({
             return (
               <TouchableOpacity
                 key={group.id}
-                style={[styles.webCard, { borderColor: colors.border }]}
+                style={[styles.webCard, { borderColor: isDark ? colors.border : "#000000" }]}
                 onPress={() => handlePress(group, isJoined)}
                 onLongPress={isJoined ? () => handleLeave(group.id) : undefined}
                 activeOpacity={0.75}
                 disabled={loadingId === group.id}
               >
                 <View style={[styles.webIconBox, { backgroundColor: iconColor }]} />
-                <Text style={[styles.webCardTitle, { color: colors.text }]} numberOfLines={2}>
+                <Text style={[styles.webCardTitle, { color: isDark ? colors.text : "#000000" }]} numberOfLines={2}>
                   {group.name}
                 </Text>
                 {!isJoined && (
@@ -347,9 +352,9 @@ const styles = StyleSheet.create({
   btn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   btnText: { fontWeight: "500", fontSize: 13 },
   // Web grid
-  webScrollContainer: { padding: 24, paddingBottom: 48 },
+  webScrollContainer: { padding: 24, paddingLeft: 36, paddingBottom: 48 },
   webTitle: { fontSize: 20, fontWeight: "600", marginBottom: 16 },
-  webGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, borderWidth: 1, borderRadius: 16, padding: 16 },
+  webGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16 },
   webCard: { width: "47%", minHeight: 90, borderWidth: 1, borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   webIconBox: { width: 32, height: 32, borderRadius: 8, flexShrink: 0 },
   webCardTitle: { fontSize: 14, fontWeight: "600", flexShrink: 1 },
