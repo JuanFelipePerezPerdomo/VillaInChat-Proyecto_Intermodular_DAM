@@ -24,7 +24,7 @@ export default function SignIn() {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { colors } = useTheme();
+    const { colors, isDark } = useTheme();
     const passwordRef = useRef<TextInput>(null);
 
     const { control, handleSubmit, formState: {errors} } = useForm<SignInForm>({
@@ -60,8 +60,9 @@ export default function SignIn() {
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
                 >
+                  <View style={Platform.OS === 'web' ? styles.webFormWrapper : undefined}>
                     <View style={styles.headerSection}>
-                        <Text style={[styles.title, { color: "#000000" }]}>Iniciar Sesion</Text>
+                        <Text style={[styles.title, { color: isDark ? "#5f547d" : "#000000" }]}>Iniciar Sesion</Text>
                         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                             Bienvenido de vuelta
                         </Text>
@@ -80,7 +81,7 @@ export default function SignIn() {
                             render={({ field: { onChange, value }}) => (
                                 <Input
                                     label="Correo Electronico"
-                                    labelColor="#000000"
+                                    labelColor={isDark ? "#5f547d" : "#000000"}
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Inserte su correo"
@@ -101,7 +102,7 @@ export default function SignIn() {
                                 <Input
                                     ref={passwordRef}
                                     label="Contraseña"
-                                    labelColor="#000000"
+                                    labelColor={isDark ? "#5f547d" : "#000000"}
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Inserte su contraseña"
@@ -132,6 +133,7 @@ export default function SignIn() {
                             <Text style={[styles.linkText, { color: colors.primary }]}>Registrate</Text>
                         </TouchableOpacity>
                     </View>
+                  </View>
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -184,5 +186,10 @@ const styles = StyleSheet.create({
     },
     linkText: {
         ...Typography.button,
+    },
+    webFormWrapper: {
+        width: '100%',
+        maxWidth: 480,
+        alignSelf: 'center',
     },
 });

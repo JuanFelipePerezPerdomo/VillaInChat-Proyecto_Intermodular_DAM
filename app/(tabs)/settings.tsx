@@ -31,7 +31,7 @@ export default function Settings() {
                 <Button
                     title="Cerrar Sesion"
                     onPress={handleLogout}
-                    variant="outline"
+                    variant="primary"
                     fullWidth
                 />
             </View>

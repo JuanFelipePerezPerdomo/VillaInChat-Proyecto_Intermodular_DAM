@@ -45,14 +45,14 @@ export const Colors = {
     surfaceVariant: "#2C2C2C",
 
     // Textos
-    text: "#FFFFFF",
+    text: "#c2e0e0",
     textSecondary: "#AAAAAA",
     textTertiary: "#777777",
 
     // Primarios
-    primary: "#0A84FF",
+    primary: "#5f547d",
     primaryLight: "#4DA2FF",
-    primaryDark: "#0055CC",
+    primaryDark: "#ccb800",
 
     // Estados
     error: "#FF453A",
@@ -67,8 +67,8 @@ export const Colors = {
     favorite: "#FFD700",
     icon: "#AAAAAA",
     placeholder: "#666666",
-    onPrimary: "#FFFFFF",
-    onPrimaryHover: "#CCCCCC",
+    onPrimary: "#c2e0e0",
+    onPrimaryHover: "#000000",
     card: "#24264e",
     tabs: "#181a33",
   },
