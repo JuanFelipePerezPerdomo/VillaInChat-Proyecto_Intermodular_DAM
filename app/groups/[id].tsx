@@ -84,7 +84,7 @@ export default function GroupPage() {
                 renderItem={({ item }) => (
                     <ChatCard
                         chat={item}
-                        onPress={() => router.push({ pathname: "/rooms/[id]", params: { id: item.chat_id } })}
+                        onPress={() => router.replace({ pathname: "/rooms/[id]" as any, params: { id: item.chat_id } })}
                     />
                 )}
                 ListEmptyComponent={
