@@ -6,9 +6,9 @@ import { useTheme } from "@/src/hooks";
 import { supabase } from "@/src/lib/supabase";
 import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { Ionicons } from "@expo/vector-icons";
-import { Redirect, router } from "expo-router";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Redirect, router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -17,6 +17,11 @@ type Group = {
   name: string,
   memberCount: number
 }
+
+const ICON_COLORS = [
+  "#FFD700", "#87CEEB", "#FFB6C1", "#90EE90",
+  "#E0E0E0", "#40E0D0", "#A0522D", "#FFA07A",
+]
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -41,9 +46,11 @@ export default function Home() {
     setLoading(false)
   }
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  useFocusEffect(
+    useCallback(() => {
+      loadData()
+    }, [])
+  )
 
   if (loading) {
     return (
@@ -79,6 +86,16 @@ export default function Home() {
         </Empty>
       </SafeAreaView>
     );
+  }
+
+  if (Platform.OS === 'web') {
+    return (
+      <WebGroupGrid
+        groups={groups}
+        joinedGroups={joinedGroups}
+        onAction={loadData}
+      />
+    )
   }
 
   return (
@@ -120,11 +137,12 @@ function GroupList({
   isJoined: boolean,
   onAction: () => void
 }) {
+  const { colors } = useTheme()
   if (groups.length === 0) return null
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id}
@@ -145,6 +163,7 @@ function GroupCard({
   onAction,
 }: Group & { isJoined: boolean; onAction: () => void }) {
   const [loadingAction, setLoadingAction] = useState(false)
+  const { colors } = useTheme()
 
   async function handleJoin() {
     setLoadingAction(true)
@@ -161,45 +180,122 @@ function GroupCard({
   }
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={[styles.card, { backgroundColor: colors.surface }]}
+      onPress={() => isJoined && router.push({ pathname: "/groups/[id]" as any, params: { id } })}
+      activeOpacity={isJoined ? 0.7 : 1}
+    >
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{name}</Text>
-        <Text style={styles.cardDescription}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{name}</Text>
+        <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
           {memberCount} {memberCount === 1 ? "miembro" : "miembros"}
         </Text>
       </View>
-      <View style={styles.cardFooter}>
-        {isJoined ? (
-          <>
-            <TouchableOpacity
-              style={[styles.btn, styles.btnPrimary, { flex: 1, marginRight: 8 }]}
-              onPress={() => router.push({ pathname: "/groups/[id]" as any, params: { id } })}
-            >
-              <Text style={styles.btnText}>Entrar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.btn, styles.btnDanger]}
-              onPress={handleLeave}
-              disabled={loadingAction}
-            >
-              <Text style={styles.btnText}>
-                {loadingAction ? "..." : "Salir"}
-              </Text>
-            </TouchableOpacity>
-          </>
-        ) : (
+      {!isJoined && (
+        <View style={styles.cardFooter}>
           <TouchableOpacity
-            style={[styles.btn, styles.btnOutline, { flex: 1 }]}
+            style={[styles.btn, { flex: 1, borderWidth: 1, borderColor: colors.primary }]}
             onPress={handleJoin}
             disabled={loadingAction}
           >
-            <Text style={styles.btnOutlineText}>
+            <Text style={[styles.btnText, { color: colors.primary }]}>
               {loadingAction ? "Uniéndose..." : "Unirse"}
             </Text>
           </TouchableOpacity>
-        )}
-      </View>
-    </View>
+        </View>
+      )}
+      {isJoined && (
+        <View style={styles.cardFooter}>
+          <TouchableOpacity
+            style={[styles.btn, { backgroundColor: colors.error }]}
+            onPress={handleLeave}
+            disabled={loadingAction}
+          >
+            <Text style={[styles.btnText, { color: colors.onPrimary }]}>
+              {loadingAction ? "..." : "Salir"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </TouchableOpacity>
+  )
+}
+
+function WebGroupGrid({
+  groups,
+  joinedGroups,
+  onAction,
+}: {
+  groups: Group[]
+  joinedGroups: Group[]
+  onAction: () => void
+}) {
+  const { colors } = useTheme()
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+
+  async function handlePress(group: Group, isJoined: boolean) {
+    if (isJoined) {
+      router.push({ pathname: "/groups/[id]" as any, params: { id: group.id } })
+    } else {
+      setLoadingId(group.id)
+      await joinGroup(group.id)
+      onAction()
+      setLoadingId(null)
+    }
+  }
+
+  async function handleLeave(id: string) {
+    setLoadingId(id)
+    await leaveGroup(id)
+    onAction()
+    setLoadingId(null)
+  }
+
+  const items = [...groups, null] // null = botón añadir
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView contentContainerStyle={styles.webScrollContainer}>
+        <Text style={[styles.webTitle, { color: colors.text }]}>grupos</Text>
+        <View style={[styles.webGrid, { borderColor: colors.border }]}>
+          {items.map((group, index) => {
+            if (group === null) {
+              return (
+                <TouchableOpacity
+                  key="__add__"
+                  style={[styles.webCard, { backgroundColor: colors.success, borderColor: colors.success }]}
+                  onPress={() => router.push("/groups/newGroupPage" as any)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="add" size={18} color="#fff" />
+                  <Text style={styles.webAddText}>Añadir nuevo Grupo</Text>
+                </TouchableOpacity>
+              )
+            }
+            const isJoined = joinedGroups.some(jg => jg.id === group.id)
+            const iconColor = ICON_COLORS[index % ICON_COLORS.length]
+            return (
+              <TouchableOpacity
+                key={group.id}
+                style={[styles.webCard, { borderColor: colors.border }]}
+                onPress={() => handlePress(group, isJoined)}
+                onLongPress={isJoined ? () => handleLeave(group.id) : undefined}
+                activeOpacity={0.75}
+                disabled={loadingId === group.id}
+              >
+                <View style={[styles.webIconBox, { backgroundColor: iconColor }]} />
+                <Text style={[styles.webCardTitle, { color: colors.text }]} numberOfLines={2}>
+                  {group.name}
+                </Text>
+                {!isJoined && (
+                  <Text style={[styles.webJoinHint, { color: colors.textTertiary }]}>Toca para unirte</Text>
+                )}
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   )
 }
 
@@ -243,15 +339,20 @@ const styles = StyleSheet.create({
   pageTitle: { fontSize: 22, fontWeight: "700" },
   section: { gap: 12 },
   sectionTitle: { fontSize: 20, fontWeight: "600" },
-  card: { backgroundColor: "#fff", borderRadius: 12, padding: 16, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  card: { borderRadius: 12, padding: 16, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   cardHeader: { marginBottom: 12, gap: 4 },
   cardTitle: { fontSize: 16, fontWeight: "600" },
-  cardDescription: { fontSize: 13, color: "#6b7280" },
+  cardDescription: { fontSize: 13 },
   cardFooter: { flexDirection: "row" },
   btn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  btnPrimary: { backgroundColor: "#6366f1" },
-  btnDanger: { backgroundColor: "#ef4444" },
-  btnOutline: { borderWidth: 1, borderColor: "#6366f1" },
-  btnText: { color: "#fff", fontWeight: "500", fontSize: 13 },
-  btnOutlineText: { color: "#6366f1", fontWeight: "500", fontSize: 13 },
+  btnText: { fontWeight: "500", fontSize: 13 },
+  // Web grid
+  webScrollContainer: { padding: 24, paddingBottom: 48 },
+  webTitle: { fontSize: 20, fontWeight: "600", marginBottom: 16 },
+  webGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, borderWidth: 1, borderRadius: 16, padding: 16 },
+  webCard: { width: "47%", minHeight: 90, borderWidth: 1, borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 },
+  webIconBox: { width: 32, height: 32, borderRadius: 8, flexShrink: 0 },
+  webCardTitle: { fontSize: 14, fontWeight: "600", flexShrink: 1 },
+  webJoinHint: { fontSize: 11, marginTop: 2 },
+  webAddText: { color: "#fff", fontWeight: "600", fontSize: 13 },
 })

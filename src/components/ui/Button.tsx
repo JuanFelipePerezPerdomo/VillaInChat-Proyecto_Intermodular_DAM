@@ -57,14 +57,14 @@ export function Button({
         if (isDisabled) return colors.textTertiary;
         switch (variant) {
             case "primary":
-                return "#FFFFFF";
+                return hovered ? colors.onPrimaryHover : colors.onPrimary;
             case "secondary":
                 return colors.text;
             case "outline":
             case "ghost":
                 return colors.primary;
             default:
-                return "#FFFFFF";
+                return hovered ? colors.onPrimaryHover : colors.onPrimary;
         }
     };
 

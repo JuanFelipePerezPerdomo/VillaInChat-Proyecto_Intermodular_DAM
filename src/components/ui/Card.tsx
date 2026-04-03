@@ -24,7 +24,7 @@ export function Card({
         case "filled":
             return colors.surfaceVariant;
         default:
-            return colors.surface;
+            return colors.card;
         }
     };
 

@@ -12,6 +12,7 @@ import {
 
 interface InputProps extends Omit<TextInputProps, "style">{
     label?: string,
+    labelColor?: string,
     error?: string,
     hint?: string,
     showCharCount?: boolean,
@@ -21,6 +22,7 @@ interface InputProps extends Omit<TextInputProps, "style">{
 
 export const Input = forwardRef<TextInput, InputProps>(function Input({
     label,
+    labelColor,
     error,
     hint,
     showCharCount = false,
@@ -44,7 +46,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input({
     return (
     <View style={[styles.container, containerStyle]}>
       {label && (
-        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+        <Text style={[styles.label, { color: labelColor ?? colors.text }]}>{label}</Text>
       )}
 
       <TextInput

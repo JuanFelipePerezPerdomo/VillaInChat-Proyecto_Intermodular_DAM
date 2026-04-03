@@ -5,19 +5,19 @@
 export const Colors = {
   light: {
     // Fondos
-    background: "#FFFFFF",
-    surface: "#F5F5F5",
-    surfaceVariant: "#E8E8E8",
+    background: "#c2e0e0",
+    surface: "#2e8a70",
+    surfaceVariant: "#2e8a70",
 
     // Textos
-    text: "#1A1A1A",
-    textSecondary: "#666666",
+    text: "#ffffff",
+    textSecondary: "#0c0c22",
     textTertiary: "#999999",
 
     // Primarios
-    primary: "#007AFF",
-    primaryLight: "#4DA2FF",
-    primaryDark: "#0055CC",
+    primary: "#f174b9",
+    primaryLight: "#ec78f7",
+    primaryDark: "#f39be0",
 
     // Estados
     error: "#DC3545",
@@ -31,9 +31,11 @@ export const Colors = {
     // Especiales
     favorite: "#FFD700",
     icon: "#666666",
-    placeholder: "#AAAAAA",
-    card: "#FFFFFF",
-    tabs: "#ffffff",
+    placeholder: "#ffffff",
+    onPrimary: "#ffffff",
+    onPrimaryHover: "#000000",
+    card: "#c2e0e0",
+    tabs: "#c2e0e0",
   },
 
   dark: {
@@ -65,6 +67,8 @@ export const Colors = {
     favorite: "#FFD700",
     icon: "#AAAAAA",
     placeholder: "#666666",
+    onPrimary: "#FFFFFF",
+    onPrimaryHover: "#CCCCCC",
     card: "#24264e",
     tabs: "#181a33",
   },
@@ -90,5 +94,7 @@ export type ThemeColors = {
   favorite: string;
   icon: string;
   placeholder: string;
+  onPrimary: string;
+  onPrimaryHover: string;
   tabs: string;
 };

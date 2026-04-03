@@ -61,7 +61,7 @@ export default function SignIn() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.headerSection}>
-                        <Text style={[styles.title, { color: colors.text }]}>Iniciar Sesion</Text>
+                        <Text style={[styles.title, { color: "#000000" }]}>Iniciar Sesion</Text>
                         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                             Bienvenido de vuelta
                         </Text>
@@ -80,6 +80,7 @@ export default function SignIn() {
                             render={({ field: { onChange, value }}) => (
                                 <Input
                                     label="Correo Electronico"
+                                    labelColor="#000000"
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Inserte su correo"
@@ -100,6 +101,7 @@ export default function SignIn() {
                                 <Input
                                     ref={passwordRef}
                                     label="Contraseña"
+                                    labelColor="#000000"
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Inserte su contraseña"
