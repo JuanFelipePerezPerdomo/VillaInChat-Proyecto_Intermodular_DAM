@@ -7,7 +7,7 @@ import z from "zod";
 import { supabase } from "../lib/supabase";
 import { createGroupSchema } from "../schemas/groupSchema";
 import { createRoomSchema } from "../schemas/roomSchema";
-import { getCurrentUser } from "../services/getCurrentUser";
+import { getCurrentUser } from "../services";
 
 export async function createRoom(unsafeData: z.infer<typeof createRoomSchema>) {
     const { success, data } = createRoomSchema.safeParse(unsafeData);
@@ -154,12 +154,25 @@ export async function leaveGroup(groupId: string) {
     const user = await getCurrentUser()
     if (!user) return { error: true, message: "Not authenticated" }
 
-    const { error } = await supabase
-    .from("group_members")
-    .delete()
-    .eq("FK_group_id", groupId)
-    .eq("FK_user_id", user.id)
+    const { data: chats, error: chatsError } = await supabase
+        .from("chat_room")
+        .select("chat_id")
+        .eq("FK_group_id", groupId)
 
-    if (error) return { error: true, message: "Failed to leave group" }
+    if (chatsError) return { error: true, message: "Failed to fetch group chats" }
+
+    const [groupResult, chatResult] = await Promise.all([
+        supabase.from("group_members").delete()
+            .eq("FK_group_id", groupId)
+            .eq("FK_user_id", user.id),
+        chats && chats.length > 0
+            ? supabase.from("chat_members").delete()
+                .in("FK_chat_id", chats.map(c => c.chat_id))
+                .eq("FK_user_id", user.id)
+            : Promise.resolve({ error: null }),
+    ])
+
+    if (groupResult.error || chatResult.error) return { error: true, message: "Failed to leave group" }
     return { error: false }
 }
+

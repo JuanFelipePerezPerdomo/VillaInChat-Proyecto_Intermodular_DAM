@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       chat_members: {
@@ -80,19 +55,19 @@ export type Database = {
           chat_id: string
           chat_type: Database["public"]["Enums"]["ChatType"]
           FK_group_id: string | null
-          name: string
+          name: string | null
         }
         Insert: {
           chat_id?: string
           chat_type?: Database["public"]["Enums"]["ChatType"]
           FK_group_id?: string | null
-          name: string
+          name?: string | null
         }
         Update: {
           chat_id?: string
           chat_type?: Database["public"]["Enums"]["ChatType"]
           FK_group_id?: string | null
-          name?: string
+          name?: string | null
         }
         Relationships: [
           {
@@ -205,6 +180,7 @@ export type Database = {
           dni: string | null
           nie: string | null
           phone: string
+          push_token: string | null
           user_id: string
           user_role: Database["public"]["Enums"]["UserType"]
           username: string
@@ -213,6 +189,7 @@ export type Database = {
           dni?: string | null
           nie?: string | null
           phone: string
+          push_token?: string | null
           user_id?: string
           user_role?: Database["public"]["Enums"]["UserType"]
           username: string
@@ -221,6 +198,7 @@ export type Database = {
           dni?: string | null
           nie?: string | null
           phone?: string
+          push_token?: string | null
           user_id?: string
           user_role?: Database["public"]["Enums"]["UserType"]
           username?: string
@@ -363,9 +341,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       ChatPrivileges: ["ADMIN", "MEMBER", "CLASS_REP"],
