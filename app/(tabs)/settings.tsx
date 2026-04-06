@@ -1,11 +1,13 @@
 import { Button, Card } from "@/src/components/ui";
 import { useTheme } from "@/src/hooks";
 import { supabase } from "@/src/lib/supabase";
+import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { useSettingsStore } from "@/src/stores";
 import { Spacing, Typography } from "@/src/themes";
 import type { ThemeMode } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: string }[] = [
@@ -17,13 +19,32 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; icon: string }[] = [
 export default function Settings() {
 
     const { colors, isDark } = useTheme();
+    const { theme, welcomeShown, setTheme, setWelcomeShown } = useSettingsStore();
+    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
-    const {
-        theme,
-        welcomeShown,
-        setTheme,
-        setWelcomeShown,
-    } = useSettingsStore();
+    useEffect(() => {
+        async function loadNotificationSetting() {
+            const user = await getCurrentUser();
+            if (!user) return;
+            const { data } = await supabase
+                .from("user_profile")
+                .select("notifications_enabled")
+                .eq("user_id", user.id)
+                .single();
+            if (data) setNotificationsEnabled(data.notifications_enabled ?? true);
+        }
+        loadNotificationSetting();
+    }, []);
+
+    async function handleToggleNotifications(value: boolean) {
+        setNotificationsEnabled(value);
+        const user = await getCurrentUser();
+        if (!user) return;
+        await supabase
+            .from("user_profile")
+            .update({ notifications_enabled: value })
+            .eq("user_id", user.id);
+    }
 
     async function handleLogout() {
         await supabase.auth.signOut();
@@ -70,6 +91,28 @@ export default function Settings() {
                     </TouchableOpacity>
                 ))}
                 
+
+            <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Notificaciones</Text>
+                <View style={styles.optionRow}>
+                    <View style={styles.optionInfo}>
+                        <Ionicons
+                            name={notificationsEnabled ? "notifications-outline" : "notifications-off-outline"}
+                            size={20}
+                            color={colors.icon}
+                        />
+                        <Text style={[styles.optionLabel, { color: colors.text }]}>
+                            Habiltar Notificaciones
+                        </Text>
+                    </View>
+                    <Switch
+                        value={notificationsEnabled}
+                        onValueChange={handleToggleNotifications}
+                        trackColor={{ false: colors.border, true: colors.primary }}
+                        thumbColor="#fff"
+                    />
+                </View>
+            </View>
 
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Cuenta</Text>

@@ -179,6 +179,7 @@ export type Database = {
         Row: {
           dni: string | null
           nie: string | null
+          notifications_enabled: boolean | null
           phone: string
           push_token: string | null
           user_id: string
@@ -188,6 +189,7 @@ export type Database = {
         Insert: {
           dni?: string | null
           nie?: string | null
+          notifications_enabled?: boolean | null
           phone: string
           push_token?: string | null
           user_id?: string
@@ -197,6 +199,7 @@ export type Database = {
         Update: {
           dni?: string | null
           nie?: string | null
+          notifications_enabled?: boolean | null
           phone?: string
           push_token?: string | null
           user_id?: string
