@@ -1,5 +1,5 @@
 import { useTheme } from "@/src/hooks";
-import AuthProvider from "@/src/providers";
+import AuthProvider, { NotificationProvider } from "@/src/providers";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -17,7 +17,7 @@ function RootNavigator() {
       <Stack.Screen name="index"/>
       <Stack.Screen name="(auth)/SignIn"/>
       <Stack.Screen name="(auth)/SignUp"/>
-      <Stack.Screen name="rooms/NewRoomPage"/>
+      <Stack.Screen name="rooms/newRoomPage"/>
       <Stack.Screen name="rooms/[id]"/>
     </Stack>
   );
@@ -26,9 +26,11 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <RootNavigator />
-      </GestureHandlerRootView>
+      <NotificationProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <RootNavigator />
+        </GestureHandlerRootView>
+      </NotificationProvider>
     </AuthProvider>
   );
 }
