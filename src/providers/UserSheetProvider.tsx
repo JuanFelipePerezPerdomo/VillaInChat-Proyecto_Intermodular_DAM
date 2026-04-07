@@ -4,6 +4,7 @@ import { SheetUser, UserBottomSheet } from "@/src/components/users/UserBottomShe
 
 type UserSheetContextType = {
     openUserSheet: (user: SheetUser) => void
+    closeUserSheet: () => void
 }
 
 const UserSheetContext = createContext<UserSheetContextType | null>(null)
@@ -17,11 +18,15 @@ export function UserSheetProvider({ children }: { children: React.ReactNode }) {
         sheetRef.current?.present()
     }
 
+    function closeUserSheet() {
+        sheetRef.current?.dismiss()
+    }
+
     return (
-        <UserSheetContext.Provider value={{ openUserSheet }}>
+        <UserSheetContext.Provider value={{ openUserSheet, closeUserSheet }}>
             <BottomSheetModalProvider>
                 {children}
-                <UserBottomSheet ref={sheetRef} user={selectedUser} />
+                <UserBottomSheet ref={sheetRef} user={selectedUser} onClose={closeUserSheet} />
             </BottomSheetModalProvider>
         </UserSheetContext.Provider>
     )

@@ -96,6 +96,87 @@ export async function createGroup(
     return { error: false, groupId }
 }
 
+export async function findExistingDM(receiverId: string): Promise<string | null> {
+    const user = await getCurrentUser()
+    if (!user) return null
+
+    const { data: myPrivateChats } = await supabase
+        .from("chat_members")
+        .select("FK_chat_id, chat_room!inner(chat_type)")
+        .eq("FK_user_id", user.id)
+        .eq("chat_room.chat_type", "PRIVATE")
+
+    const chatIds = myPrivateChats?.map((c: any) => c.FK_chat_id) ?? []
+    if (chatIds.length === 0) return null
+
+    const { data: existing } = await supabase
+        .from("chat_members")
+        .select("FK_chat_id")
+        .eq("FK_user_id", receiverId)
+        .in("FK_chat_id", chatIds)
+        .maybeSingle()
+
+    return existing?.FK_chat_id ?? null
+}
+
+export async function createDM(receiverId: string, initialMessage: string) {
+    const user = await getCurrentUser()
+    if (!user) return { error: true, message: "No autenticado" }
+    if (user.id === receiverId) return { error: true, message: "No puedes enviarte un DM a ti mismo" }
+
+    // Check if a DM between these two users already exists
+    const { data: myPrivateChats } = await supabase
+        .from("chat_members")
+        .select("FK_chat_id, chat_room!inner(chat_type)")
+        .eq("FK_user_id", user.id)
+        .eq("chat_room.chat_type", "PRIVATE")
+
+    const chatIds = myPrivateChats?.map((c: any) => c.FK_chat_id) ?? []
+
+    if (chatIds.length > 0) {
+        const { data: existing } = await supabase
+            .from("chat_members")
+            .select("FK_chat_id")
+            .eq("FK_user_id", receiverId)
+            .in("FK_chat_id", chatIds)
+            .maybeSingle()
+
+        if (existing) return { error: false, chatId: existing.FK_chat_id }
+    }
+
+    const { data: room, error: roomError } = await supabase
+        .from("chat_room")
+        .insert({ chat_type: "PRIVATE" })
+        .select("chat_id")
+        .single()
+
+    if (roomError || !room) return { error: true, message: "Error al crear el chat" }
+
+    const chatId = room.chat_id
+
+    const { error: memberError } = await supabase
+        .from("chat_members")
+        .insert([
+            { FK_chat_id: chatId, FK_user_id: user.id },
+            { FK_chat_id: chatId, FK_user_id: receiverId },
+        ])
+
+    if (memberError) return { error: true, message: "Error al añadir miembros" }
+
+    const { error: msgError } = await supabase
+        .from("messages")
+        .insert({
+            content: initialMessage.trim(),
+            FK_chat_id: chatId,
+            FK_author_id: user.id,
+            read: false,
+        })
+
+    if (msgError) return { error: true, message: "Error al enviar el mensaje inicial" }
+
+    return { error: false, chatId }
+}
+
 export async function joinRoom(roomId:string) {
     const user = await getCurrentUser()
     if(!user) return { error: true, message: "Not Autenticated"}

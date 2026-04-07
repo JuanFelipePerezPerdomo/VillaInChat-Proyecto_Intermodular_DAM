@@ -168,8 +168,8 @@ function GroupCard({
   async function handleJoin() {
     setLoadingAction(true)
     await joinGroup(id)
-    onAction()
     setLoadingAction(false)
+    router.push({ pathname: "/groups/[id]" as any, params: { id } })
   }
 
   async function handleLeave() {
@@ -182,8 +182,11 @@ function GroupCard({
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.surface }]}
-      onPress={() => isJoined && router.push({ pathname: "/groups/[id]" as any, params: { id } })}
-      activeOpacity={isJoined ? 0.7 : 1}
+      onPress={() => isJoined
+        ? router.push({ pathname: "/groups/[id]" as any, params: { id } })
+        : handleJoin()
+      }
+      activeOpacity={0.7}
     >
       <View style={styles.cardHeader}>
         <Text style={[styles.cardTitle, { color: isDark ? colors.text : "#000000" }]}>{name}</Text>
