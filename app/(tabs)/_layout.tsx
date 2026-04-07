@@ -42,6 +42,15 @@ export default function RootLayout(){
                 }}
             />
             <Tabs.Screen
+                name="notifications"
+                options={{
+                    title: "Menciones",
+                    tabBarIcon: ({ color }) => (
+                        <MaterialCommunityIcons name="bell" size={24} color={color}/>
+                    )
+                }}
+            />
+            <Tabs.Screen
                 name="settings"
                 options={{
                     title: "Settings",

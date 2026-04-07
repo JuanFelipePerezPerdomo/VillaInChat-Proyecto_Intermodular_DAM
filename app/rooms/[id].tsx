@@ -1,6 +1,7 @@
 import { useTheme } from "@/src/hooks";
-import { supabase } from "@/src/lib/supabase";
+import { useUserSheet } from "@/src/providers/UserSheetProvider";
 import { getCurrentUser } from "@/src/services/getCurrentUser";
+import { supabase } from "@/src/lib/supabase";
 import { BorderRadius, Spacing, Typography } from "@/src/themes";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -31,6 +32,7 @@ type Message = {
 
 export default function RoomPage() {
     const { id } = useLocalSearchParams<{ id: string }>()
+    const { openUserSheet } = useUserSheet()
 
     const [room, setRoom] = useState<Room | null>(null)
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -154,6 +156,10 @@ export default function RoomPage() {
                         <MessageBubble
                             message={item}
                             isOwn={item.FK_author_id === userProfile?.user_id}
+                            onAvatarPress={() => openUserSheet({
+                                user_id: item.FK_author_id,
+                                username: item.author?.username ?? "Desconocido",
+                            })}
                         />
                     )}
                     ListEmptyComponent={
@@ -194,33 +200,50 @@ export default function RoomPage() {
     )
 }
 
-function MessageBubble({ message, isOwn }: { message: Message, isOwn: boolean }) {
+function MessageBubble({ message, isOwn, onAvatarPress }: {
+    message: Message
+    isOwn: boolean
+    onAvatarPress: () => void
+}) {
     const { colors } = useTheme()
     const time = new Date(message.created_at).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
     })
+    const initial = (message.author?.username ?? "?").charAt(0).toUpperCase()
 
     return (
-        <View style={[styles.bubbleWrapper, isOwn ? styles.bubbleRight : styles.bubbleLeft]}>
+        <View style={[styles.bubbleRow, isOwn ? styles.bubbleRowRight : styles.bubbleRowLeft]}>
             {!isOwn && (
-                <Text style={[styles.bubbleAuthor, { color: colors.textSecondary }]}>
-                    {message.author?.username ?? "Desconocido"}
-                </Text>
+                <TouchableOpacity
+                    style={[styles.avatarCircle, { backgroundColor: colors.surfaceVariant }]}
+                    onPress={onAvatarPress}
+                >
+                    <Text style={[styles.avatarInitial, { color: colors.textSecondary }]}>
+                        {initial}
+                    </Text>
+                </TouchableOpacity>
             )}
-            <View style={[
-                styles.bubble,
-                isOwn
-                    ? { backgroundColor: colors.primary, borderBottomRightRadius: 4 }
-                    : { backgroundColor: colors.card, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: colors.border }
-            ]}>
-                <Text style={[styles.bubbleText, { color: isOwn ? "#fff" : colors.text }]}>
-                    {message.content}
+            <View style={[styles.bubbleWrapper, isOwn ? styles.bubbleRight : styles.bubbleLeft]}>
+                {!isOwn && (
+                    <Text style={[styles.bubbleAuthor, { color: colors.textSecondary }]}>
+                        {message.author?.username ?? "Desconocido"}
+                    </Text>
+                )}
+                <View style={[
+                    styles.bubble,
+                    isOwn
+                        ? { backgroundColor: colors.primary, borderBottomRightRadius: 4 }
+                        : { backgroundColor: colors.card, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: colors.border }
+                ]}>
+                    <Text style={[styles.bubbleText, { color: isOwn ? "#fff" : colors.text }]}>
+                        {message.content}
+                    </Text>
+                </View>
+                <Text style={[styles.bubbleTime, { color: colors.textTertiary }, isOwn && { textAlign: "right" }]}>
+                    {time}
                 </Text>
             </View>
-            <Text style={[styles.bubbleTime, { color: colors.textTertiary }, isOwn && { textAlign: "right" }]}>
-                {time}
-            </Text>
         </View>
     )
 }
@@ -231,13 +254,25 @@ async function getRoom(roomId: string): Promise<Room | null> {
 
     const { data, error } = await supabase
     .from("chat_room")
-    .select("chat_id, name, FK_group_id, chat_members!inner (FK_user_id)")
+    .select("chat_id, name, FK_group_id, chat_type, chat_members!inner (FK_user_id)")
     .eq("chat_id", roomId)
     .eq("chat_members.FK_user_id", user.id)
     .single()
 
     if (error || !data) return null
-    return { chat_id: data.chat_id, name: data.name, FK_group_id: data.FK_group_id ?? null }
+
+    let displayName = data.name
+    if (data.chat_type === "PRIVATE") {
+        const { data: other } = await supabase
+            .from("chat_members")
+            .select("user_profile (username)")
+            .eq("FK_chat_id", roomId)
+            .neq("FK_user_id", user.id)
+            .single()
+        displayName = (other?.user_profile as any)?.username ?? "DM"
+    }
+
+    return { chat_id: data.chat_id, name: displayName ?? "", FK_group_id: data.FK_group_id ?? null }
 }
 
 async function getUserProfile(): Promise<UserProfile | null> {
@@ -316,5 +351,28 @@ const styles = StyleSheet.create({
         height: 40,
         alignItems: "center",
         justifyContent: "center",
+    },
+    bubbleRow: {
+        flexDirection: "row",
+        alignItems: "flex-end",
+        gap: Spacing.xs,
+    },
+    bubbleRowLeft: {
+        justifyContent: "flex-start",
+    },
+    bubbleRowRight: {
+        justifyContent: "flex-end",
+    },
+    avatarCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: BorderRadius.full,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: 14,
+    },
+    avatarInitial: {
+        fontSize: 13,
+        fontWeight: "600",
     },
 })

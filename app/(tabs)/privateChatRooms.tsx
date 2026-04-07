@@ -247,20 +247,23 @@ function WebRoomGrid({
 async function getPrivateRooms(userId: string): Promise<Room[]> {
   const { data, error } = await supabase
     .from("chat_room")
-    .select("chat_id, name, chat_members (FK_user_id)")
+    .select("chat_id, chat_members (FK_user_id, user_profile (username))")
     .eq("chat_type", "PRIVATE")
     .is("FK_group_id", null)
-    .order("name", { ascending: true })
 
   if (error || !data) return []
 
   return data
     .filter(room => room.chat_members.some((u: any) => u.FK_user_id === userId))
-    .map((room) => ({
-      id: room.chat_id,
-      name: room.name,
-      memberCount: room.chat_members.length,
-    }))
+    .map((room) => {
+      const otherMember = room.chat_members.find((u: any) => u.FK_user_id !== userId)
+      const displayName = (otherMember?.user_profile as any)?.username ?? "DM"
+      return {
+        id: room.chat_id,
+        name: displayName,
+        memberCount: room.chat_members.length,
+      }
+    })
 }
 
 const styles = StyleSheet.create({
