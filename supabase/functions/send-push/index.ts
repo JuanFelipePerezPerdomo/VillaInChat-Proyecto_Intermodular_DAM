@@ -36,12 +36,13 @@ Deno.serve(async (req) => {
 
     const userIds = members.map((m) => m.FK_user_id);
 
-    // 3. Obtener los push_tokens de todos los receptores
+    // 3. Obtener los push_tokens de receptores con notificaciones activadas
     const { data: profiles } = await supabase
         .from("user_profile")
         .select("push_token")
         .in("user_id", userIds)
-        .not("push_token", "is", null);
+        .not("push_token", "is", null)
+        .eq("notifications_enabled", true);
 
     const tokens = profiles?.map((p) => p.push_token).filter(Boolean) ?? [];
     console.log("Tokens encontrados:", tokens.length);
