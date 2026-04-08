@@ -18,7 +18,11 @@ export async function getExpoPushToken(): Promise<string | null> {
     const { status } = await Notifications.requestPermissionsAsync();
     if (status !== 'granted') return null;
 
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-    const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
-    return data;
+    try {
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+        const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+        return data;
+    } catch {
+        return null;
+    }
 }

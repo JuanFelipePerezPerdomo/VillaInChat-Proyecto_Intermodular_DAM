@@ -1,5 +1,5 @@
 import { useTheme } from "@/src/hooks";
-import AuthProvider, { NotificationProvider } from "@/src/providers";
+import AuthProvider, { NotificationProvider, UserSheetProvider } from "@/src/providers";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
@@ -28,7 +28,9 @@ export default function RootLayout() {
     <AuthProvider>
       <NotificationProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <RootNavigator />
+          <UserSheetProvider>
+            <RootNavigator />
+          </UserSheetProvider>
         </GestureHandlerRootView>
       </NotificationProvider>
     </AuthProvider>
