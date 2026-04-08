@@ -45,7 +45,7 @@ export default function GroupPage() {
 
             const [groupData, chatsData] = await Promise.all([
                 getGroupInfo(id, user.id),
-                getGroupChats(id),
+                getGroupChats(id, user.id),
             ])
 
             if (!groupData) {
@@ -132,15 +132,16 @@ async function getGroupInfo(groupId: string, userId: string): Promise<GroupInfo 
     return { group_id: data.group_id, group_name: data.group_name }
 }
 
-async function getGroupChats(groupId: string): Promise<GroupChat[]> {
+async function getGroupChats(groupId: string, userId: string): Promise<GroupChat[]> {
     const { data, error } = await supabase
         .from("chat_room")
-        .select("chat_id, name, chat_type")
+        .select("chat_id, name, chat_type, chat_members!inner (FK_user_id)")
         .eq("FK_group_id", groupId)
+        .eq("chat_members.FK_user_id", userId)
         .order("chat_type", { ascending: true })
 
     if (error || !data) return []
-    return data as GroupChat[]
+    return data.map(({ chat_id, name, chat_type }) => ({ chat_id, name, chat_type })) as GroupChat[]
 }
 
 const styles = StyleSheet.create({

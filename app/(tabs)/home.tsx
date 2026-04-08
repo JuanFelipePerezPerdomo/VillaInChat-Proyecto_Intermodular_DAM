@@ -1,4 +1,4 @@
-import { joinGroup, leaveGroup } from "@/src/actions";
+import { leaveGroup } from "@/src/actions";
 import {
   Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle
 } from "@/src/components/ui";
@@ -25,7 +25,6 @@ const ICON_COLORS = [
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
-  const [groups, setGroups] = useState<Group[]>([])
   const [joinedGroups, setJoinedGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const { colors } = useTheme()
@@ -37,12 +36,7 @@ export default function Home() {
       return
     }
     setUser(currentUser)
-    const [allGroups, myGroups] = await Promise.all([
-      getAllGroups(),
-      getJoinedGroups(currentUser.id),
-    ])
-    setGroups(allGroups)
-    setJoinedGroups(myGroups)
+    setJoinedGroups(await getJoinedGroups(currentUser.id))
     setLoading(false)
   }
 
@@ -62,11 +56,7 @@ export default function Home() {
 
   if (!user) return <Redirect href={"/SignIn"} />
 
-  const notJoinedGroups = groups.filter(
-    g => !joinedGroups.some(jg => jg.id === g.id)
-  )
-
-  if (groups.length === 0) {
+  if (joinedGroups.length === 0) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <Empty>
@@ -74,8 +64,8 @@ export default function Home() {
             <EmptyMedia variant="icon">
               <Ionicons name="people-outline" size={42} color={colors.icon} />
             </EmptyMedia>
-            <EmptyTitle> No hay ningun grupo creado </EmptyTitle>
-            <EmptyDescription> Espera a que un administrador cree un grupo</EmptyDescription>
+            <EmptyTitle>No perteneces a ningún grupo</EmptyTitle>
+            <EmptyDescription>Pide a un administrador que te añada a un grupo</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Button
@@ -91,8 +81,7 @@ export default function Home() {
   if (Platform.OS === 'web') {
     return (
       <WebGroupGrid
-        groups={groups}
-        joinedGroups={joinedGroups}
+        groups={joinedGroups}
         onAction={loadData}
       />
     )
@@ -112,13 +101,6 @@ export default function Home() {
         <GroupList
           title="Tus Grupos"
           groups={joinedGroups}
-          isJoined
-          onAction={loadData}
-        />
-        <GroupList
-          title="Grupos Disponibles"
-          groups={notJoinedGroups}
-          isJoined={false}
           onAction={loadData}
         />
       </ScrollView>
@@ -129,12 +111,10 @@ export default function Home() {
 function GroupList({
   title,
   groups,
-  isJoined,
   onAction,
 }: {
   title: string,
   groups: Group[],
-  isJoined: boolean,
   onAction: () => void
 }) {
   const { colors, isDark } = useTheme()
@@ -147,7 +127,7 @@ function GroupList({
         data={groups}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <GroupCard {...item} isJoined={isJoined} onAction={onAction} />
+          <GroupCard {...item} onAction={onAction} />
         )}
         scrollEnabled={false}
       />
@@ -159,18 +139,10 @@ function GroupCard({
   id,
   name,
   memberCount,
-  isJoined,
   onAction,
-}: Group & { isJoined: boolean; onAction: () => void }) {
+}: Group & { onAction: () => void }) {
   const [loadingAction, setLoadingAction] = useState(false)
   const { colors, isDark } = useTheme()
-
-  async function handleJoin() {
-    setLoadingAction(true)
-    await joinGroup(id)
-    setLoadingAction(false)
-    router.push({ pathname: "/groups/[id]" as any, params: { id } })
-  }
 
   async function handleLeave() {
     setLoadingAction(true)
@@ -182,10 +154,7 @@ function GroupCard({
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.surface }]}
-      onPress={() => isJoined
-        ? router.push({ pathname: "/groups/[id]" as any, params: { id } })
-        : handleJoin()
-      }
+      onPress={() => router.push({ pathname: "/groups/[id]" as any, params: { id } })}
       activeOpacity={0.7}
     >
       <View style={styles.cardHeader}>
@@ -194,59 +163,31 @@ function GroupCard({
           {memberCount} {memberCount === 1 ? "miembro" : "miembros"}
         </Text>
       </View>
-      {!isJoined && (
-        <View style={styles.cardFooter}>
-          <TouchableOpacity
-            style={[styles.btn, { flex: 1, borderWidth: 1, borderColor: colors.primary }]}
-            onPress={handleJoin}
-            disabled={loadingAction}
-          >
-            <Text style={[styles.btnText, { color: colors.primary }]}>
-              {loadingAction ? "Uniéndose..." : "Unirse"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {isJoined && (
-        <View style={styles.cardFooter}>
-          <TouchableOpacity
-            style={[styles.btn, { backgroundColor: colors.error }]}
-            onPress={handleLeave}
-            disabled={loadingAction}
-          >
-            <Text style={[styles.btnText, { color: colors.onPrimary }]}>
-              {loadingAction ? "..." : "Salir"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <View style={styles.cardFooter}>
+        <TouchableOpacity
+          style={[styles.btn, { backgroundColor: colors.error }]}
+          onPress={handleLeave}
+          disabled={loadingAction}
+        >
+          <Text style={[styles.btnText, { color: colors.onPrimary }]}>
+            {loadingAction ? "..." : "Salir"}
+          </Text>
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   )
 }
 
 function WebGroupGrid({
   groups,
-  joinedGroups,
   onAction,
 }: {
   groups: Group[]
-  joinedGroups: Group[]
   onAction: () => void
 }) {
   const { colors, isDark } = useTheme()
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [addHovered, setAddHovered] = useState(false)
-
-  async function handlePress(group: Group, isJoined: boolean) {
-    if (isJoined) {
-      router.push({ pathname: "/groups/[id]" as any, params: { id: group.id } })
-    } else {
-      setLoadingId(group.id)
-      await joinGroup(group.id)
-      onAction()
-      setLoadingId(null)
-    }
-  }
 
   async function handleLeave(id: string) {
     setLoadingId(id)
@@ -255,7 +196,7 @@ function WebGroupGrid({
     setLoadingId(null)
   }
 
-  const items = [...groups, null] // null = botón añadir
+  const items: (Group | null)[] = [...groups, null]
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -280,14 +221,13 @@ function WebGroupGrid({
                 </Pressable>
               )
             }
-            const isJoined = joinedGroups.some(jg => jg.id === group.id)
             const iconColor = ICON_COLORS[index % ICON_COLORS.length]
             return (
               <TouchableOpacity
                 key={group.id}
                 style={[styles.webCard, { borderColor: isDark ? colors.border : "#000000" }]}
-                onPress={() => handlePress(group, isJoined)}
-                onLongPress={isJoined ? () => handleLeave(group.id) : undefined}
+                onPress={() => router.push({ pathname: "/groups/[id]" as any, params: { id: group.id } })}
+                onLongPress={() => handleLeave(group.id)}
                 activeOpacity={0.75}
                 disabled={loadingId === group.id}
               >
@@ -295,9 +235,6 @@ function WebGroupGrid({
                 <Text style={[styles.webCardTitle, { color: isDark ? colors.text : "#000000" }]} numberOfLines={2}>
                   {group.name}
                 </Text>
-                {!isJoined && (
-                  <Text style={[styles.webJoinHint, { color: colors.textTertiary }]}>Toca para unirte</Text>
-                )}
               </TouchableOpacity>
             )
           })}
@@ -305,21 +242,6 @@ function WebGroupGrid({
       </ScrollView>
     </SafeAreaView>
   )
-}
-
-async function getAllGroups(): Promise<Group[]> {
-  const { data, error } = await supabase
-    .from("group_room")
-    .select("group_id, group_name, group_members (count)")
-    .order("group_name", { ascending: true })
-
-  if (error || !data) return []
-
-  return data.map((g) => ({
-    id: g.group_id,
-    name: g.group_name,
-    memberCount: (g.group_members as any)[0]?.count ?? 0,
-  }))
 }
 
 async function getJoinedGroups(userId: string): Promise<Group[]> {
@@ -361,6 +283,5 @@ const styles = StyleSheet.create({
   webCard: { width: "47%", minHeight: 90, borderWidth: 1, borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 },
   webIconBox: { width: 32, height: 32, borderRadius: 8, flexShrink: 0 },
   webCardTitle: { fontSize: 14, fontWeight: "600", flexShrink: 1 },
-  webJoinHint: { fontSize: 11, marginTop: 2 },
-  webAddText: { color: "#fff", fontWeight: "600", fontSize: 13 },
+  webAddText: { fontWeight: "600", fontSize: 13 },
 })

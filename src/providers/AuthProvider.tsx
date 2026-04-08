@@ -30,6 +30,7 @@ export default function AuthProvider(props: Props){
 
             if (data.session) {
                 setSession(data.session);
+                router.replace('/home');
             } else {
                 router.replace("/(auth)/SignIn");
             }
@@ -39,13 +40,11 @@ export default function AuthProvider(props: Props){
 
         fetchSession();
 
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (_, session) => {
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             setSession(session);
             setLoading(false);
 
-            if(session){
-                router.replace('/home');
-            } else {
+            if (event === 'SIGNED_OUT') {
                 router.replace("/(auth)/SignIn");
             }
         });

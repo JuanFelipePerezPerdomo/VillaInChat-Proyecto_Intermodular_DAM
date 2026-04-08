@@ -43,6 +43,8 @@ export default function SignIn() {
 
             if(loginError) throw loginError;
 
+            router.replace('/home');
+
         } catch (err) {
             setError(err instanceof Error ? err.message : "Ha ocurrido un error");
         } finally{
