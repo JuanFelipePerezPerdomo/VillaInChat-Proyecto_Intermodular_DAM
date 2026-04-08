@@ -61,7 +61,7 @@ export default function PrivateChatRooms() {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <Empty>
           <EmptyHeader>
-            <EmptyMedia variant="icon">
+            <EmptyMedia>
               <Ionicons name="chatbubble-outline" size={42} color={colors.icon} />
             </EmptyMedia>
             <EmptyTitle> No tienes chats privados </EmptyTitle>

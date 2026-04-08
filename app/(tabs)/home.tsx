@@ -71,7 +71,7 @@ export default function Home() {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <Empty>
           <EmptyHeader>
-            <EmptyMedia variant="icon">
+            <EmptyMedia>
               <Ionicons name="people-outline" size={42} color={colors.icon} />
             </EmptyMedia>
             <EmptyTitle> No hay ningun grupo creado </EmptyTitle>
