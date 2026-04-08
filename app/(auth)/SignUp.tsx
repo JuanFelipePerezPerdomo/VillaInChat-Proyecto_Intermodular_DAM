@@ -13,6 +13,9 @@ import { z } from "zod";
 
 const signUpSchema = z.object({
     name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+    phone: z.string()
+        .min(9, "El teléfono debe tener al menos 9 dígitos")
+        .refine((val) => /^\+?[\d\s\-()+]+$/.test(val), "Número de teléfono inválido"),
     email: z.string().email("Correo electrónico inválido"),
     password: z.string()
         .min(6, "La contraseña debe tener al menos 6 caracteres")
@@ -30,6 +33,7 @@ export default function SignUp() {
     const [error, setError] = useState<string | null>(null);
     const { colors, isDark } = useTheme();
 
+    const phoneRef = useRef<TextInput>(null);
     const emailRef = useRef<TextInput>(null);
     const passwordRef = useRef<TextInput>(null);
     const confirmRef = useRef<TextInput>(null);
@@ -43,7 +47,7 @@ export default function SignUp() {
             setLoading(true);
             setError(null);
 
-            const { error: signUpError } = await supabase.auth.signUp({
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 email: data.email,
                 password: data.password,
                 options: { data: { name: data.name } }
@@ -51,12 +55,27 @@ export default function SignUp() {
 
             if (signUpError) throw signUpError;
 
+            const userId = signUpData.user?.id;
+            if (!userId) throw new Error("No se pudo obtener el ID de usuario");
+
+            const { error: profileError } = await supabase
+                .from("user_profile")
+                .insert({
+                    user_id: userId,
+                    username: data.name,
+                    phone: data.phone,
+                });
+
+            if (profileError) throw profileError;
+
             const { error: loginError } = await supabase.auth.signInWithPassword({
                 email: data.email,
                 password: data.password
             });
 
             if (loginError) throw loginError;
+
+            router.replace('/home');
 
         } catch (err) {
             setError(err instanceof Error ? err.message : "Ha ocurrido un error");
@@ -105,9 +124,31 @@ export default function SignUp() {
                                         autoCapitalize="words"
                                         autoCorrect={false}
                                         returnKeyType="next"
-                                        onSubmitEditing={() => emailRef.current?.focus()}
+                                        onSubmitEditing={() => phoneRef.current?.focus()}
                                         blurOnSubmit={false}
                                         error={errors.name?.message}
+                                    />
+                                )}
+                            />
+
+                            <Controller
+                                control={control}
+                                name="phone"
+                                render={({ field: { onChange, value } }) => (
+                                    <Input
+                                        ref={phoneRef}
+                                        label="Número de Teléfono"
+                                        labelColor={labelColor}
+                                        value={value}
+                                        onChangeText={onChange}
+                                        placeholder="+34 600 000 000"
+                                        keyboardType="phone-pad"
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                        returnKeyType="next"
+                                        onSubmitEditing={() => emailRef.current?.focus()}
+                                        blurOnSubmit={false}
+                                        error={errors.phone?.message}
                                     />
                                 )}
                             />
@@ -137,7 +178,7 @@ export default function SignUp() {
                             <Controller
                                 control={control}
                                 name="password"
-                                render={({ field: { onChange, value } }) => (
+                                render={({ field: { onChange } }) => (
                                     <Input
                                         ref={passwordRef}
                                         label="Contraseña"
