@@ -5,7 +5,7 @@
 export const Colors = {
   light: {
     // Fondos
-    background: "#c2e0e0",
+    background: "#f2f2f2",
     surface: "#2e8a70",
     surfaceVariant: "#2e8a70",
 
@@ -15,9 +15,9 @@ export const Colors = {
     textTertiary: "#999999",
 
     // Primarios
-    primary: "#f174b9",
-    primaryLight: "#ec78f7",
-    primaryDark: "#f39be0",
+    primary: "#2e8a70",
+    primaryLight: "#2e8a70",
+    primaryDark: "#c2e0e0",
 
     // Estados
     error: "#DC3545",
