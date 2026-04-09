@@ -11,16 +11,21 @@ import { StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: string }[] = [
-    {value: "light", label: "Claro", icon:"sunny-outline"},
-    {value: "dark", label: "Oscuro", icon:"moon-outline"},
-    {value: "system", label: "Sistema", icon:"phone-portrait-outline"},
+    { value: "light", label: "Claro", icon: "sunny-outline" },
+    { value: "dark", label: "Oscuro", icon: "moon-outline" },
+];
+
+const SETTINGS_SECTIONS = [
+    { key: "tema", label: "Tema", icon: "color-palette-outline" },
+    { key: "notificaciones", label: "Notificaciones", icon: "notifications-outline" },
+    { key: "cuenta", label: "Cuenta", icon: "person-outline" },
 ];
 
 export default function Settings() {
-
-    const { colors, isDark } = useTheme();
-    const { theme, welcomeShown, setTheme, setWelcomeShown } = useSettingsStore();
+    const { colors } = useTheme();
+    const { theme, setTheme } = useSettingsStore();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+    const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
     useEffect(() => {
         async function loadNotificationSetting() {
@@ -31,7 +36,9 @@ export default function Settings() {
                 .select("notifications_enabled")
                 .eq("user_id", user.id)
                 .single();
-            if (data) setNotificationsEnabled(data.notifications_enabled ?? true);
+            if (data) {
+                setNotificationsEnabled(data.notifications_enabled ?? true);
+            }
         }
         loadNotificationSetting();
     }, []);
@@ -50,79 +57,117 @@ export default function Settings() {
         await supabase.auth.signOut();
     }
 
+    function handlePressSection(section: string) {
+        setExpandedSection(expandedSection === section ? null : section);
+    }
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-            <Card style={styles.section}>
-                <Text style={[styles.sectionTitle, {color: colors.text}]}> Tema </Text>
-
-                {THEME_OPTIONS.map((option) => (
-                    <TouchableOpacity
-                        key={option.value}
-                        style={styles.optionInfo}
-                        onPress={() => setTheme(option.value)}
-                    >
-                        <View style={styles.optionInfo}>
+            <Card style={styles.cardContainer}>
+                {SETTINGS_SECTIONS.map((section, index) => (
+                    <View key={section.key}>
+                        <TouchableOpacity
+                            style={[
+                                styles.accordionHeader,
+                                index < SETTINGS_SECTIONS.length - 1 && expandedSection !== section.key && {
+                                    borderBottomWidth: 1,
+                                    borderBottomColor: colors.border,
+                                },
+                            ]}
+                            onPress={() => handlePressSection(section.key)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.accordionHeaderLeft}>
+                                <Ionicons name={section.icon as any} size={22} color={colors.icon} />
+                                <Text style={[styles.accordionTitle, { color: colors.text }]}>{section.label}</Text>
+                            </View>
                             <Ionicons
-                                name={option.icon as any}
+                                name={expandedSection === section.key ? "chevron-down" : "chevron-forward"}
                                 size={20}
                                 color={colors.icon}
                             />
-                            <Text style={[styles.optionLabel, { color: colors.text}]}>
-                                {option.label}
-                            </Text>
-                        </View>
-                        <View
-                            style={[styles.radio,
-                                {
-                                    borderColor:
-                                        theme === option.value ? colors.primary : colors.border
-                                },
-                            ]}
-                        >
-                            {theme === option.value && (
-                                <View
-                                    style={[
-                                        styles.radioInner,
-                                        { backgroundColor: colors.primary },
-                                    ]}
-                                />
-                            )}
-                        </View>
-                    </TouchableOpacity>
-                ))}
-                
+                        </TouchableOpacity>
 
-            <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Notificaciones</Text>
-                <View style={styles.optionRow}>
-                    <View style={styles.optionInfo}>
-                        <Ionicons
-                            name={notificationsEnabled ? "notifications-outline" : "notifications-off-outline"}
-                            size={20}
-                            color={colors.icon}
-                        />
-                        <Text style={[styles.optionLabel, { color: colors.text }]}>
-                            Habiltar Notificaciones
-                        </Text>
+                        {expandedSection === section.key && (
+                            <View style={[styles.accordionContent, 
+                                index < SETTINGS_SECTIONS.length - 1 && {
+                                borderBottomWidth: 1,
+                                borderBottomColor: colors.border,
+                            }]}>
+                                {section.key === "tema" && (
+                                    THEME_OPTIONS.map((option) => (
+                                        <TouchableOpacity
+                                            key={option.value}
+                                            style={styles.optionRow}
+                                            onPress={() => setTheme(option.value)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <View style={styles.optionInfo}>
+                                                <Ionicons
+                                                    name={option.icon as any}
+                                                    size={20}
+                                                    color={colors.icon}
+                                                />
+                                                <Text style={[styles.optionLabel, { color: colors.text }]}>
+                                                    {option.label}
+                                                </Text>
+                                            </View>
+                                            <View
+                                                style={[styles.radio,
+                                                {
+                                                    borderColor:
+                                                        theme === option.value ? colors.primary : colors.border
+                                                },
+                                                ]}
+                                            >
+                                                {theme === option.value && (
+                                                    <View
+                                                        style={[
+                                                            styles.radioInner,
+                                                            { backgroundColor: colors.primary },
+                                                        ]}
+                                                    />
+                                                )}
+                                            </View>
+                                        </TouchableOpacity>
+                                    ))
+                                )}
+
+                                {section.key === "notificaciones" && (
+                                    <View style={styles.optionRow}>
+                                        <View style={styles.optionInfo}>
+                                            <Ionicons
+                                                name={notificationsEnabled ? "notifications-outline" : "notifications-off-outline"}
+                                                size={20}
+                                                color={colors.icon}
+                                            />
+                                            <Text style={[styles.optionLabel, { color: colors.text }]}>
+                                                Habilitar Notificaciones
+                                            </Text>
+                                        </View>
+                                        <Switch
+                                            value={notificationsEnabled}
+                                            onValueChange={handleToggleNotifications}
+                                            trackColor={{ false: colors.border, true: colors.primary }}
+                                            thumbColor="#fff"
+                                        />
+                                    </View>
+                                )}
+
+                                {section.key === "cuenta" && (
+                                    <View style={styles.optionContent}>
+                                        <Button
+                                            title="Cerrar Sesion"
+                                            onPress={handleLogout}
+                                            variant="primary"
+                                            fullWidth
+                                        />
+                                    </View>
+                                )}
+                            </View>
+                        )}
                     </View>
-                    <Switch
-                        value={notificationsEnabled}
-                        onValueChange={handleToggleNotifications}
-                        trackColor={{ false: colors.border, true: colors.primary }}
-                        thumbColor="#fff"
-                    />
-                </View>
-            </View>
-
-            <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Cuenta</Text>
-                <Button
-                    title="Cerrar Sesion"
-                    onPress={handleLogout}
-                    variant="primary"
-                    fullWidth
-                />
-            </View>
+                ))}
             </Card>
         </SafeAreaView>
     );
@@ -133,46 +178,49 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: Spacing.xl,
     },
-    title: {
-        ...Typography.h2,
-        marginBottom: Spacing.xxl,
+    cardContainer: {
+        padding: 0,
+        overflow: 'hidden',
     },
-    section: {
-        gap: Spacing.sm,
-        marginBottom: Spacing.xl,
-    },
-    sectionTitle: {
-        ...Typography.label,
-        textTransform: "uppercase",
-        letterSpacing: 0.5,
-    },
-    card: {
+    accordionHeader: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
-        padding: Spacing.lg,
-        borderRadius: 12,
-        borderWidth: 1,
+        justifyContent: "space-between",
+        paddingVertical: Spacing.lg,
+        paddingHorizontal: Spacing.lg,
     },
-    cardText: {
+    accordionHeaderLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: Spacing.md,
+    },
+    accordionTitle: {
         ...Typography.body,
+        fontWeight: "600",
     },
-    cardValue: {
-        ...Typography.bodySmall,
+    accordionContent: {
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.lg,
+        paddingBottom: Spacing.lg,
     },
     optionRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: Spacing.sm,
+        paddingVertical: Spacing.md,
     },
     optionInfo: {
         flexDirection: "row",
         alignItems: "center",
         gap: Spacing.md,
+        paddingLeft: Spacing.lg,
     },
     optionLabel: {
         ...Typography.body,
+    },
+    optionContent: {
+        paddingVertical: Spacing.sm,
+        paddingTop: Spacing.md,
     },
     radio: {
         width: 22,
