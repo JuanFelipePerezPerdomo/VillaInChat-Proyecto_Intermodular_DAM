@@ -40,7 +40,7 @@ export default function RoomPage() {
     const [newMessage, setNewMessage] = useState("")
     const [loading, setLoading] = useState(true)
     const [sending, setSending] = useState(false)
-    const { colors } = useTheme()
+    const { colors, isDark } = useTheme()
 
     useEffect(() => {
         async function loadData() {
@@ -152,16 +152,28 @@ export default function RoomPage() {
                     keyExtractor={(item) => item.id.toString()}
                     inverted
                     contentContainerStyle={styles.messagesList}
-                    renderItem={({ item }) => (
-                        <MessageBubble
-                            message={item}
-                            isOwn={item.FK_author_id === userProfile?.user_id}
-                            onAvatarPress={() => openUserSheet({
-                                user_id: item.FK_author_id,
-                                username: item.author?.username ?? "Desconocido",
-                            })}
-                        />
-                    )}
+                    renderItem={({ item, index }) => {
+                        const isOwn = item.FK_author_id === userProfile?.user_id
+                        const currentDate = new Date(item.created_at).toDateString()
+                        const nextMsg = messages[index + 1]
+                        const nextDate = nextMsg ? new Date(nextMsg.created_at).toDateString() : null
+                        const showSeparator = nextDate !== null && currentDate !== nextDate
+                        return (
+                            <>
+                                <MessageBubble
+                                    message={item}
+                                    isOwn={isOwn}
+                                    onAvatarPress={() => openUserSheet({
+                                        user_id: item.FK_author_id,
+                                        username: item.author?.username ?? "Desconocido",
+                                    })}
+                                />
+                                {showSeparator && (
+                                    <DateSeparator date={item.created_at} />
+                                )}
+                            </>
+                        )
+                    }}
                     ListEmptyComponent={
                         <View style={styles.emptyMessages}>
                             <Text style={[styles.emptyText, { color: colors.textTertiary }]}>No hay mensajes aun...</Text>
@@ -171,13 +183,18 @@ export default function RoomPage() {
 
                 <View style={[styles.inputRow, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
                     <TextInput
-                        style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
+                        style={[styles.input, { backgroundColor: colors.surface, color: isDark ? colors.text : "#ffffff" }]}
                         value={newMessage}
                         onChangeText={setNewMessage}
                         placeholder="Escriba un Mensaje"
-                        placeholderTextColor={colors.placeholder}
+                        placeholderTextColor={isDark ? colors.placeholder : "#000000"}
                         multiline
                         maxLength={500}
+                        onKeyPress={({ nativeEvent }) => {
+                            if (nativeEvent.key === "Enter" && !(nativeEvent as any).shiftKey) {
+                                handleSend()
+                            }
+                        }}
                     />
                     <TouchableOpacity
                         style={[
@@ -200,6 +217,20 @@ export default function RoomPage() {
     )
 }
 
+function DateSeparator({ date }: { date: string }) {
+    const { colors } = useTheme()
+    const label = new Date(date).toLocaleDateString([], { day: "2-digit", month: "2-digit", year: "numeric" })
+    return (
+        <View style={styles.dateSeparator}>
+            <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dateLabel, { color: colors.textTertiary, backgroundColor: colors.background }]}>
+                {label}
+            </Text>
+            <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
+        </View>
+    )
+}
+
 function MessageBubble({ message, isOwn, onAvatarPress }: {
     message: Message
     isOwn: boolean
@@ -210,40 +241,38 @@ function MessageBubble({ message, isOwn, onAvatarPress }: {
         hour: "2-digit",
         minute: "2-digit",
     })
-    const initial = (message.author?.username ?? "?").charAt(0).toUpperCase()
+    const username = message.author?.username ?? "Desconocido"
+    const initial = username.charAt(0).toUpperCase()
+
+    const avatar = (
+        <TouchableOpacity
+            style={[styles.avatarCircle, { backgroundColor: colors.surfaceVariant }]}
+            onPress={onAvatarPress}
+        >
+            <Text style={[styles.avatarInitial, { color: colors.text }]}>{initial}</Text>
+        </TouchableOpacity>
+    )
 
     return (
-        <View style={[styles.bubbleRow, isOwn ? styles.bubbleRowRight : styles.bubbleRowLeft]}>
-            {!isOwn && (
-                <TouchableOpacity
-                    style={[styles.avatarCircle, { backgroundColor: colors.surfaceVariant }]}
-                    onPress={onAvatarPress}
-                >
-                    <Text style={[styles.avatarInitial, { color: colors.textSecondary }]}>
-                        {initial}
+        <View style={[styles.messageRow, isOwn && styles.messageRowOwn]}>
+            {!isOwn && avatar}
+            <View style={[styles.messageContent, isOwn && styles.messageContentOwn]}>
+                <View style={[styles.messageMeta, isOwn && styles.messageMetaOwn]}>
+                    {isOwn && (
+                        <Text style={[styles.messageTime, { color: colors.textTertiary }]}>{time}</Text>
+                    )}
+                    <Text style={[styles.messageAuthor, { color: isOwn ? colors.primary : colors.text }]}>
+                        {username}
                     </Text>
-                </TouchableOpacity>
-            )}
-            <View style={[styles.bubbleWrapper, isOwn ? styles.bubbleRight : styles.bubbleLeft]}>
-                {!isOwn && (
-                    <Text style={[styles.bubbleAuthor, { color: colors.textSecondary }]}>
-                        {message.author?.username ?? "Desconocido"}
-                    </Text>
-                )}
-                <View style={[
-                    styles.bubble,
-                    isOwn
-                        ? { backgroundColor: colors.primary, borderBottomRightRadius: 4 }
-                        : { backgroundColor: colors.card, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: colors.border }
-                ]}>
-                    <Text style={[styles.bubbleText, { color: isOwn ? "#fff" : colors.text }]}>
-                        {message.content}
-                    </Text>
+                    {!isOwn && (
+                        <Text style={[styles.messageTime, { color: colors.textTertiary }]}>{time}</Text>
+                    )}
                 </View>
-                <Text style={[styles.bubbleTime, { color: colors.textTertiary }, isOwn && { textAlign: "right" }]}>
-                    {time}
+                <Text style={[styles.messageText, { color: colors.text }, isOwn && styles.messageTextOwn]}>
+                    {message.content}
                 </Text>
             </View>
+            {isOwn && avatar}
         </View>
     )
 }
@@ -324,13 +353,22 @@ const styles = StyleSheet.create({
     messagesList: { padding: Spacing.lg, gap: Spacing.sm },
     emptyMessages: { flex: 1, alignItems: "center", marginTop: 40 },
     emptyText: { ...Typography.bodySmall },
-    bubbleWrapper: { marginBottom: 10, maxWidth: "75%" },
-    bubbleLeft: { alignSelf: "flex-start" },
-    bubbleRight: { alignSelf: "flex-end" },
-    bubbleAuthor: { ...Typography.caption, marginBottom: 2, marginLeft: 4 },
-    bubble: { borderRadius: 16, paddingVertical: 8, paddingHorizontal: 12 },
-    bubbleText: { fontSize: 14 },
-    bubbleTime: { fontSize: 10, marginTop: 2, marginHorizontal: 4 },
+    messageRow: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: Spacing.sm,
+        paddingVertical: Spacing.xs,
+    },
+    messageContent: { flex: 1 },
+    messageMeta: {
+        flexDirection: "row",
+        alignItems: "baseline",
+        gap: Spacing.sm,
+        marginBottom: 2,
+    },
+    messageAuthor: { fontSize: 14, fontWeight: "600" },
+    messageTime: { fontSize: 11 },
+    messageText: { fontSize: 14, lineHeight: 20 },
     inputRow: {
         flexDirection: "row",
         padding: Spacing.md,
@@ -352,17 +390,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    bubbleRow: {
-        flexDirection: "row",
-        alignItems: "flex-end",
-        gap: Spacing.xs,
-    },
-    bubbleRowLeft: {
-        justifyContent: "flex-start",
-    },
-    bubbleRowRight: {
-        justifyContent: "flex-end",
-    },
     avatarCircle: {
         width: 32,
         height: 32,
@@ -375,4 +402,16 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: "600",
     },
+    messageRowOwn: { justifyContent: "flex-end" },
+    messageContentOwn: { alignItems: "flex-end" },
+    messageMetaOwn: { justifyContent: "flex-end" },
+    messageTextOwn: { textAlign: "right" },
+    dateSeparator: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginVertical: Spacing.md,
+        gap: Spacing.sm,
+    },
+    dateLine: { flex: 1, height: 1 },
+    dateLabel: { fontSize: 11, paddingHorizontal: Spacing.sm },
 })
