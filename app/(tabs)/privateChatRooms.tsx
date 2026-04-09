@@ -1,6 +1,6 @@
 import { leaveRoom } from "@/src/actions";
 import {
-  Button, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle
+  Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle
 } from "@/src/components/ui";
 import { useTheme } from "@/src/hooks";
 import { supabase } from "@/src/lib/supabase";
@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -64,15 +64,10 @@ export default function PrivateChatRooms() {
             <EmptyMedia variant="icon">
               <Ionicons name="chatbubble-outline" size={42} color={colors.icon} />
             </EmptyMedia>
-            <EmptyTitle> No tienes chats privados </EmptyTitle>
-            <EmptyDescription> Crea un nuevo chat privado</EmptyDescription>
+            <EmptyTitle> No tienes Mensajes Directos </EmptyTitle>
+            <EmptyDescription>Cuando te unas a un grupo puedes seleccionar a un compañero y enviarle un mensaje!</EmptyDescription>
           </EmptyHeader>
-          <EmptyContent>
-            <Button
-              title="Crear un nuevo chat"
-              onPress={() => router.push("/rooms/newRoomPage")}
-            />
-          </EmptyContent>
+          <EmptyContent />
         </Empty>
       </SafeAreaView>
     )
@@ -92,11 +87,6 @@ export default function PrivateChatRooms() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.pageHeader}>
           <Text style={[styles.pageTitle, { color: colors.text }]}>Chats Privados</Text>
-          <Button
-            title="Nuevo chat"
-            onPress={() => router.push("/rooms/newRoomPage" as any)}
-            size="small"
-          />
         </View>
         <RoomList
           title="Tus Chats Privados"
@@ -187,7 +177,6 @@ function WebRoomGrid({
 }) {
   const { colors, isDark } = useTheme()
   const [loadingId, setLoadingId] = useState<string | null>(null)
-  const [addHovered, setAddHovered] = useState(false)
 
   async function handleLeave(id: string) {
     setLoadingId(id)
@@ -196,7 +185,7 @@ function WebRoomGrid({
     setLoadingId(null)
   }
 
-  const items: (Room | null)[] = [...rooms, null]
+  const items: Room[] = [...rooms]
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -204,23 +193,6 @@ function WebRoomGrid({
         <Text style={[styles.webTitle, { color: isDark ? colors.text : "#000000" }]}>chats privados</Text>
         <View style={styles.webGrid}>
           {items.map((room, index) => {
-            if (room === null) {
-              return (
-                <Pressable
-                  key="__add__"
-                  style={[styles.webCard, {
-                    backgroundColor: addHovered ? colors.primaryDark : colors.primary,
-                    borderColor: addHovered ? colors.primaryDark : colors.primary,
-                  }]}
-                  onPress={() => router.push("/rooms/newRoomPage" as any)}
-                  onHoverIn={() => setAddHovered(true)}
-                  onHoverOut={() => setAddHovered(false)}
-                >
-                  <Ionicons name="add" size={18} color={addHovered ? colors.onPrimaryHover : colors.onPrimary} />
-                  <Text style={[styles.webAddText, { color: addHovered ? colors.onPrimaryHover : colors.onPrimary }]}>Crear nuevo Chat</Text>
-                </Pressable>
-              )
-            }
             const iconColor = ICON_COLORS[index % ICON_COLORS.length]
             return (
               <TouchableOpacity

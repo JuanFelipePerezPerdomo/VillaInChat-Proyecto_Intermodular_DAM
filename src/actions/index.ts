@@ -1,1 +1,1 @@
-export { createDM, createGroup, createRoom, findExistingDM, joinGroup, joinRoom, leaveGroup, leaveRoom } from "./rooms";
+export { addChatMember, createDM, createGroup, createGroupChat, createRoom, findExistingDM, joinGroup, joinRoom, leaveGroup, leaveRoom } from "./rooms";
