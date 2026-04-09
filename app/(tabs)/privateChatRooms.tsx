@@ -21,6 +21,9 @@ type Room = {
 const ICON_COLORS = [
   "#FFD700", "#87CEEB", "#FFB6C1", "#90EE90",
   "#E0E0E0", "#40E0D0", "#A0522D", "#FFA07A",
+  "#C084FC", "#FB923C", "#34D399", "#F472B6",
+  "#60A5FA", "#FBBF24", "#A3E635", "#F87171",
+  "#38BDF8", "#E879F9", "#4ADE80", "#FDBA74",
 ]
 
 export default function PrivateChatRooms() {
