@@ -5,14 +5,14 @@
 export const Colors = {
   light: {
     // Fondos
-    background: "#f2f2f2",
+    background: "#e7decc",
     surface: "#2e8a70",
     surfaceVariant: "#2e8a70",
 
     // Textos
-    text: "#ffffff",
-    textSecondary: "#0c0c22",
-    textTertiary: "#999999",
+    text: "#1a1a1a",
+    textSecondary: "#4a4a4a",
+    textTertiary: "#888888",
 
     // Primarios
     primary: "#2e8a70",
@@ -31,7 +31,7 @@ export const Colors = {
     // Especiales
     favorite: "#FFD700",
     icon: "#666666",
-    placeholder: "#ffffff",
+    placeholder: "#888888",
     onPrimary: "#ffffff",
     onPrimaryHover: "#000000",
     card: "#c2e0e0",
@@ -52,7 +52,7 @@ export const Colors = {
     // Primarios
     primary: "#5f547d",
     primaryLight: "#4DA2FF",
-    primaryDark: "#ccb800",
+    primaryDark: "#2e8a70",
 
     // Estados
     error: "#FF453A",

@@ -21,6 +21,9 @@ type Room = {
 const ICON_COLORS = [
   "#FFD700", "#87CEEB", "#FFB6C1", "#90EE90",
   "#E0E0E0", "#40E0D0", "#A0522D", "#FFA07A",
+  "#C084FC", "#FB923C", "#34D399", "#F472B6",
+  "#60A5FA", "#FBBF24", "#A3E635", "#F87171",
+  "#38BDF8", "#E879F9", "#4ADE80", "#FDBA74",
 ]
 
 export default function PrivateChatRooms() {
@@ -61,7 +64,7 @@ export default function PrivateChatRooms() {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <Empty>
           <EmptyHeader>
-            <EmptyMedia variant="icon">
+            <EmptyMedia>
               <Ionicons name="chatbubble-outline" size={42} color={colors.icon} />
             </EmptyMedia>
             <EmptyTitle> No tienes Mensajes Directos </EmptyTitle>
