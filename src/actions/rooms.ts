@@ -305,3 +305,27 @@ export async function leaveGroup(groupId: string) {
     return { error: false }
 }
 
+export async function inviteUserToGroup(groupId: string, userId: string) {
+    const { error: memberError } = await supabase
+        .from("group_members")
+        .insert({ FK_group_id: groupId, FK_user_id: userId })
+
+    if (memberError) return { error: true, message: "Failed to invite user" }
+
+    // Subscribe to PUBLIC and ANNOUNCEMENTS chats only
+    const { data: chats, error: chatsError } = await supabase
+        .from("chat_room")
+        .select("chat_id")
+        .eq("FK_group_id", groupId)
+        .in("chat_type", ["PUBLIC", "ANNOUNCEMENTS"])
+
+    if (chatsError || !chats || chats.length === 0) return { error: false }
+
+    const { error: chatMemberError } = await supabase
+        .from("chat_members")
+        .insert(chats.map((chat) => ({ FK_chat_id: chat.chat_id, FK_user_id: userId })))
+
+    if (chatMemberError) return { error: true, message: "Failed to add user to group chats" }
+    return { error: false }
+}
+

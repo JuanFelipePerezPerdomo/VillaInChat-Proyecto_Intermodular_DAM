@@ -11,14 +11,16 @@ type Props = {
     selectedUsers: UserSearchResult[]
     onAdd: (user: UserSearchResult) => void
     onRemove: (userId: string) => void
+    filterUserIds?: string[]
 }
 
-export function UserSearchPicker({ excludeId, selectedUsers, onAdd, onRemove }: Props) {
+export function UserSearchPicker({ excludeId, selectedUsers, onAdd, onRemove, filterUserIds }: Props) {
     const { colors } = useTheme()
     const { query, setQuery, results, loading, clearSearch } = useUserSearch(excludeId)
 
     const filteredResults = results.filter(
         (r) => !selectedUsers.some((s) => s.user_id === r.user_id)
+            && !(filterUserIds ?? []).includes(r.user_id)
     )
 
     function handleAdd(user: UserSearchResult) {
