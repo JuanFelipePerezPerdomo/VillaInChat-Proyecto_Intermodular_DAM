@@ -4,4 +4,5 @@ export { Checkbox } from "./CheckBox";
 export { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "./Empty";
 export { Input } from "./Input";
 export { LoadingSwap } from "./LoadingSwap";
+export { Tooltip } from "./Tooltip";
 export { UserSearchPicker } from "./UserSearchPicker";
