@@ -100,13 +100,15 @@ export async function findExistingDM(receiverId: string): Promise<string | null>
     const user = await getCurrentUser()
     if (!user) return null
 
-    const { data: myPrivateChats } = await supabase
+    // Solo DMs: PRIVATE sin grupo (FK_group_id IS NULL)
+    const { data: myDMs } = await supabase
         .from("chat_members")
-        .select("FK_chat_id, chat_room!inner(chat_type)")
+        .select("FK_chat_id, chat_room!inner(chat_type, FK_group_id)")
         .eq("FK_user_id", user.id)
         .eq("chat_room.chat_type", "PRIVATE")
+        .is("chat_room.FK_group_id", null)
 
-    const chatIds = myPrivateChats?.map((c: any) => c.FK_chat_id) ?? []
+    const chatIds = myDMs?.map((c: any) => c.FK_chat_id) ?? []
     if (chatIds.length === 0) return null
 
     const { data: existing } = await supabase
@@ -124,12 +126,13 @@ export async function createDM(receiverId: string, initialMessage: string) {
     if (!user) return { error: true, message: "No autenticado" }
     if (user.id === receiverId) return { error: true, message: "No puedes enviarte un DM a ti mismo" }
 
-    // Check if a DM between these two users already exists
+    // Check if a DM between these two users already exists (solo chats sin grupo)
     const { data: myPrivateChats } = await supabase
         .from("chat_members")
-        .select("FK_chat_id, chat_room!inner(chat_type)")
+        .select("FK_chat_id, chat_room!inner(chat_type, FK_group_id)")
         .eq("FK_user_id", user.id)
         .eq("chat_room.chat_type", "PRIVATE")
+        .is("chat_room.FK_group_id", null)
 
     const chatIds = myPrivateChats?.map((c: any) => c.FK_chat_id) ?? []
 
