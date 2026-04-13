@@ -11,14 +11,15 @@ Deno.serve(async (req) => {
 
     const { chat_id, author_id, content } = body;
 
-    // 1. Obtener el username del autor
+    // 1. Obtener el username y rol del autor
     const { data: author } = await supabase
         .from("user_profile")
-        .select("username")
+        .select("username, user_role")
         .eq("user_id", author_id)
         .single();
 
     const authorName = author?.username ?? "Alguien";
+    const authorRole = author?.user_role ?? "STUDENT";
     console.log("Autor:", authorName);
 
     // 2. Obtener todos los miembros del chat excepto el autor
@@ -36,7 +37,7 @@ Deno.serve(async (req) => {
 
     const userIds = members.map((m) => m.FK_user_id);
 
-    // 3. Obtener los push_tokens de receptores con notificaciones activadas
+    // 3. Obtener los perfiles receptores con notificaciones activadas
     const { data: profiles } = await supabase
         .from("user_profile")
         .select("push_token")
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
         to: token,
         title: authorName,
         body: content,
-        data: { room_id: chat_id },
+        data: { room_id: chat_id, author_role: authorRole },
         sound: "default",
     }));
 

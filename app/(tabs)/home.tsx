@@ -91,8 +91,8 @@ export default function Home() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.pageHeader}>
           <Text style={[styles.pageTitle, { color: colors.text }]}>Grupos</Text>
           <Button
@@ -267,7 +267,7 @@ async function getJoinedGroups(userId: string): Promise<Group[]> {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { flex: 1 },
-  scrollContainer: { flexGrow: 1, padding: 16, gap: 24 },
+  scrollContainer: { flexGrow: 1, padding: 16, gap: 24, paddingBottom: 96 },
   pageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   pageTitle: { fontSize: 22, fontWeight: "700" },
   section: { gap: 12 },

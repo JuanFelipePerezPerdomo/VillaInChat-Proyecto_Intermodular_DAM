@@ -3,6 +3,7 @@ import { useTheme } from "@/src/hooks";
 import { supabase } from "@/src/lib/supabase";
 import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { useSettingsStore } from "@/src/stores";
+import { MENTIONS_TEACHERS_ONLY_KEY } from "@/src/constants/notificationSettings";
 import { Spacing, Typography } from "@/src/themes";
 import type { ThemeMode } from "@/src/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -21,8 +22,6 @@ const SETTINGS_SECTIONS = [
     { key: "notificaciones", label: "Notificaciones", icon: "notifications-outline" },
     { key: "cuenta", label: "Cuenta", icon: "person-outline" },
 ];
-
-const MENTIONS_TEACHERS_ONLY_KEY = "mentions_teachers_only";
 
 export default function Settings() {
     const { colors } = useTheme();
@@ -177,7 +176,10 @@ export default function Settings() {
                                                         size={20}
                                                         color={colors.icon}
                                                     />
-                                                    <Text style={[styles.optionLabel, { color: colors.text }]}>
+                                                    <Text
+                                                        style={[styles.optionLabel, styles.longOptionLabel, { color: colors.text }]}
+                                                        numberOfLines={2}
+                                                    >
                                                         Solo menciones del profesorado
                                                     </Text>
                                                 </View>
@@ -186,6 +188,7 @@ export default function Settings() {
                                                     onValueChange={handleToggleTeacherMentions}
                                                     trackColor={{ false: colors.border, true: colors.primary }}
                                                     thumbColor="#fff"
+                                                    style={styles.optionSwitch}
                                                 />
                                             </View>
                                         </>
@@ -265,10 +268,20 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: Spacing.md,
-        paddingLeft: Spacing.lg,
+        paddingLeft: Spacing.sm,
+        flex: 1,
+        minWidth: 0,
     },
     optionLabel: {
         ...Typography.body,
+    },
+    longOptionLabel: {
+        fontSize: 16,
+        lineHeight: 21,
+        flexShrink: 1,
+    },
+    optionSwitch: {
+        marginLeft: Spacing.sm,
     },
     optionContent: {
         paddingVertical: Spacing.sm,
