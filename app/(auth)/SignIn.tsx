@@ -4,7 +4,7 @@ import { supabase } from "@/src/lib/supabase";
 import { BorderRadius, Spacing, Typography } from "@/src/themes";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +19,9 @@ const SignInSchema = z.object({
 });
 
 type SignInForm = z.infer<typeof SignInSchema>
+const VIC_LOGO = require("../../assets/images/Logotipo_moderno_VIC_con_símbolo_triangular-removebg-preview.png");
+const WEB_SOFT_TEXT = "#2f2450";
+const WEB_SOFT_MUTED = "#6e6791";
 
 export default function SignIn() {
 
@@ -62,10 +65,18 @@ export default function SignIn() {
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
                 >
-                  <View style={Platform.OS === 'web' ? styles.webFormWrapper : undefined}>
+                  <View style={Platform.OS === "web" ? styles.webSplitContainer : styles.mobileFormWrapper}>
+                    {Platform.OS === "web" && (
+                        <View style={[styles.webHeroPanel, { borderColor: colors.border }]}>
+                            <View style={styles.heroLogoWrap}>
+                                <Image source={VIC_LOGO} style={styles.heroLogo} resizeMode="contain" />
+                            </View>
+                        </View>
+                    )}
+                    <View style={Platform.OS === "web" ? styles.webFormPanel : styles.webFormWrapper}>
                     <View style={styles.headerSection}>
-                        <Text style={[styles.title, { color: isDark ? "#5f547d" : "#000000" }]}>Iniciar Sesion</Text>
-                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                        <Text style={[styles.title, { color: isDark ? "#5f547d" : WEB_SOFT_TEXT }]}>Iniciar Sesion</Text>
+                        <Text style={[styles.subtitle, { color: Platform.OS === "web" ? WEB_SOFT_MUTED : colors.textSecondary }]}>
                             Bienvenido de vuelta
                         </Text>
                     </View>
@@ -83,7 +94,7 @@ export default function SignIn() {
                             render={({ field: { onChange, value }}) => (
                                 <Input
                                     label="Correo Electronico"
-                                    labelColor={isDark ? "#5f547d" : "#000000"}
+                                    labelColor={isDark ? "#5f547d" : WEB_SOFT_TEXT}
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Inserte su correo"
@@ -104,7 +115,7 @@ export default function SignIn() {
                                 <Input
                                     ref={passwordRef}
                                     label="Contraseña"
-                                    labelColor={isDark ? "#5f547d" : "#000000"}
+                                    labelColor={isDark ? "#5f547d" : WEB_SOFT_TEXT}
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Inserte su contraseña"
@@ -128,12 +139,13 @@ export default function SignIn() {
                     </View>
 
                     <View style={styles.footer}>
-                        <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+                        <Text style={[styles.footerText, { color: Platform.OS === "web" ? WEB_SOFT_MUTED : colors.textSecondary }]}>
                             ¿No tienes una cuenta?{' '}
                         </Text>
                         <TouchableOpacity onPress={() => router.push('/SignUp')}>
                             <Text style={[styles.linkText, { color: colors.primary }]}>Registrate</Text>
                         </TouchableOpacity>
+                    </View>
                     </View>
                   </View>
                 </ScrollView>
@@ -154,6 +166,46 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: Spacing.xl,
     },
+    mobileFormWrapper: {
+        width: "100%",
+    },
+    webSplitContainer: {
+        width: "100%",
+        maxWidth: 980,
+        minHeight: 560,
+        alignSelf: "center",
+        borderRadius: BorderRadius.xl,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: "#cfc6e6",
+        flexDirection: "row-reverse",
+        backgroundColor: "#f4f1fb",
+    },
+    webHeroPanel: {
+        flex: 1,
+        minHeight: 560,
+        borderLeftWidth: 1,
+        backgroundColor: "#000033",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: Spacing.xl,
+    },
+    heroLogoWrap: {
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: Spacing.xl,
+        width: "100%",
+    },
+    heroLogo: {
+        width: 360,
+        height: 360,
+    },
+    webFormPanel: {
+        width: 410,
+        justifyContent: "center",
+        padding: Spacing.xl,
+        backgroundColor: "#f8f5ff",
+    },
     headerSection: {
         alignItems: 'center',
         marginBottom: Spacing.xxl,
@@ -164,6 +216,7 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         ...Typography.body,
+        color: WEB_SOFT_MUTED,
     },
     form: {
         gap: Spacing.lg,
@@ -185,13 +238,14 @@ const styles = StyleSheet.create({
     },
     footerText: {
         ...Typography.body,
+        color: WEB_SOFT_MUTED,
     },
     linkText: {
         ...Typography.button,
     },
     webFormWrapper: {
         width: '100%',
-        maxWidth: 480,
+        maxWidth: 520,
         alignSelf: 'center',
     },
 });
