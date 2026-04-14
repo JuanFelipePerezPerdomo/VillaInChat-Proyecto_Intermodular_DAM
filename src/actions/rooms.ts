@@ -100,13 +100,15 @@ export async function findExistingDM(receiverId: string): Promise<string | null>
     const user = await getCurrentUser()
     if (!user) return null
 
-    const { data: myPrivateChats } = await supabase
+    // Solo DMs: PRIVATE sin grupo (FK_group_id IS NULL)
+    const { data: myDMs } = await supabase
         .from("chat_members")
-        .select("FK_chat_id, chat_room!inner(chat_type)")
+        .select("FK_chat_id, chat_room!inner(chat_type, FK_group_id)")
         .eq("FK_user_id", user.id)
         .eq("chat_room.chat_type", "PRIVATE")
+        .is("chat_room.FK_group_id", null)
 
-    const chatIds = myPrivateChats?.map((c: any) => c.FK_chat_id) ?? []
+    const chatIds = myDMs?.map((c: any) => c.FK_chat_id) ?? []
     if (chatIds.length === 0) return null
 
     const { data: existing } = await supabase
@@ -124,12 +126,13 @@ export async function createDM(receiverId: string, initialMessage: string) {
     if (!user) return { error: true, message: "No autenticado" }
     if (user.id === receiverId) return { error: true, message: "No puedes enviarte un DM a ti mismo" }
 
-    // Check if a DM between these two users already exists
+    // Check if a DM between these two users already exists (solo chats sin grupo)
     const { data: myPrivateChats } = await supabase
         .from("chat_members")
-        .select("FK_chat_id, chat_room!inner(chat_type)")
+        .select("FK_chat_id, chat_room!inner(chat_type, FK_group_id)")
         .eq("FK_user_id", user.id)
         .eq("chat_room.chat_type", "PRIVATE")
+        .is("chat_room.FK_group_id", null)
 
     const chatIds = myPrivateChats?.map((c: any) => c.FK_chat_id) ?? []
 
@@ -175,6 +178,54 @@ export async function createDM(receiverId: string, initialMessage: string) {
     if (msgError) return { error: true, message: "Error al enviar el mensaje inicial" }
 
     return { error: false, chatId }
+}
+
+export async function createGroupChat(
+    groupId: string,
+    name: string,
+    chatType: "PRIVATE" | "PUBLIC" | "ANNOUNCEMENTS"
+) {
+    const user = await getCurrentUser()
+    if (!user) return { error: true, message: "No autenticado" }
+
+    const { data: room, error: roomError } = await supabase
+        .from("chat_room")
+        .insert({ name, chat_type: chatType, FK_group_id: groupId })
+        .select("chat_id")
+        .single()
+
+    if (roomError || !room) return { error: true, message: "Error al crear el chat" }
+
+    // El creador siempre entra al chat
+    await supabase
+        .from("chat_members")
+        .insert({ FK_chat_id: room.chat_id, FK_user_id: user.id })
+
+    // Si es público o avisos, suscribir a todos los miembros del grupo
+    if (chatType !== "PRIVATE") {
+        const { data: members } = await supabase
+            .from("group_members")
+            .select("FK_user_id")
+            .eq("FK_group_id", groupId)
+            .neq("FK_user_id", user.id)
+
+        if (members && members.length > 0) {
+            await supabase
+                .from("chat_members")
+                .insert(members.map(m => ({ FK_chat_id: room.chat_id, FK_user_id: m.FK_user_id })))
+        }
+    }
+
+    return { error: false, chatId: room.chat_id }
+}
+
+export async function addChatMember(chatId: string, userId: string) {
+    const { error } = await supabase
+        .from("chat_members")
+        .insert({ FK_chat_id: chatId, FK_user_id: userId })
+
+    if (error) return { error: true, message: "Error al añadir miembro" }
+    return { error: false }
 }
 
 export async function joinRoom(roomId:string) {
@@ -254,6 +305,30 @@ export async function leaveGroup(groupId: string) {
     ])
 
     if (groupResult.error || chatResult.error) return { error: true, message: "Failed to leave group" }
+    return { error: false }
+}
+
+export async function inviteUserToGroup(groupId: string, userId: string) {
+    const { error: memberError } = await supabase
+        .from("group_members")
+        .insert({ FK_group_id: groupId, FK_user_id: userId })
+
+    if (memberError) return { error: true, message: "Failed to invite user" }
+
+    // Subscribe to PUBLIC and ANNOUNCEMENTS chats only
+    const { data: chats, error: chatsError } = await supabase
+        .from("chat_room")
+        .select("chat_id")
+        .eq("FK_group_id", groupId)
+        .in("chat_type", ["PUBLIC", "ANNOUNCEMENTS"])
+
+    if (chatsError || !chats || chats.length === 0) return { error: false }
+
+    const { error: chatMemberError } = await supabase
+        .from("chat_members")
+        .insert(chats.map((chat) => ({ FK_chat_id: chat.chat_id, FK_user_id: userId })))
+
+    if (chatMemberError) return { error: true, message: "Failed to add user to group chats" }
     return { error: false }
 }
 
