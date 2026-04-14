@@ -178,6 +178,7 @@ export type Database = {
       user_profile: {
         Row: {
           dni: string | null
+          grade: string | null
           nie: string | null
           notifications_enabled: boolean | null
           phone: string
@@ -188,6 +189,7 @@ export type Database = {
         }
         Insert: {
           dni?: string | null
+          grade?: string | null
           nie?: string | null
           notifications_enabled?: boolean | null
           phone: string
@@ -198,6 +200,7 @@ export type Database = {
         }
         Update: {
           dni?: string | null
+          grade?: string | null
           nie?: string | null
           notifications_enabled?: boolean | null
           phone?: string
