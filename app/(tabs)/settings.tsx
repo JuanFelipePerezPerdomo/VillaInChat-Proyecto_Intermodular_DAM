@@ -9,12 +9,13 @@ import type { ThemeMode } from "@/src/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { Alert, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: string }[] = [
     { value: "light", label: "Claro", icon: "sunny-outline" },
     { value: "dark", label: "Oscuro", icon: "moon-outline" },
+    { value: "system", label: "Sistema", icon: "phone-portrait-outline" },
 ];
 
 const SETTINGS_SECTIONS = [
@@ -28,6 +29,10 @@ export default function Settings() {
     const { theme, setTheme } = useSettingsStore();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [mentionsTeachersOnly, setMentionsTeachersOnly] = useState(false);
+    const [grade, setGrade] = useState("");
+    const [draftGrade, setDraftGrade] = useState("");
+    const [editingGrade, setEditingGrade] = useState(false);
+    const [savingGrade, setSavingGrade] = useState(false);
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
     useEffect(() => {
@@ -36,11 +41,13 @@ export default function Settings() {
             if (!user) return;
             const { data } = await supabase
                 .from("user_profile")
-                .select("notifications_enabled")
+                .select("notifications_enabled, grade")
                 .eq("user_id", user.id)
                 .single();
             if (data) {
                 setNotificationsEnabled(data.notifications_enabled ?? true);
+                setGrade(data.grade ?? "");
+                setDraftGrade(data.grade ?? "");
             }
 
             const mentionsTeachersOnlyValue = await AsyncStorage.getItem(MENTIONS_TEACHERS_ONLY_KEY);
@@ -62,6 +69,34 @@ export default function Settings() {
     async function handleToggleTeacherMentions(value: boolean) {
         setMentionsTeachersOnly(value);
         await AsyncStorage.setItem(MENTIONS_TEACHERS_ONLY_KEY, String(value));
+    }
+
+    async function handleSaveGrade() {
+        const user = await getCurrentUser();
+        if (!user) return;
+        setSavingGrade(true);
+        const { error } = await supabase
+            .from("user_profile")
+            .update({ grade: draftGrade.trim() || null })
+            .eq("user_id", user.id);
+        setSavingGrade(false);
+        if (error) {
+            Alert.alert("Error", "No se pudo guardar el curso.");
+            return;
+        }
+        setGrade(draftGrade.trim());
+        setEditingGrade(false);
+        Alert.alert("Guardado", "Tu curso se ha actualizado correctamente.");
+    }
+
+    function handleStartEditGrade() {
+        setDraftGrade(grade);
+        setEditingGrade(true);
+    }
+
+    function handleCancelEditGrade() {
+        setDraftGrade(grade);
+        setEditingGrade(false);
     }
 
     async function handleLogout() {
@@ -196,6 +231,62 @@ export default function Settings() {
 
                                     {section.key === "cuenta" && (
                                         <View style={styles.optionContent}>
+                                            <View style={styles.gradeSection}>
+                                                <TouchableOpacity
+                                                    style={[styles.optionRow, styles.gradeDisplayRow]}
+                                                    onPress={handleStartEditGrade}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <View style={styles.optionInfo}>
+                                                        <Ionicons name="school-outline" size={20} color={colors.icon} />
+                                                        <Text style={[styles.optionLabel, { color: colors.text }]}>
+                                                            Curso
+                                                        </Text>
+                                                    </View>
+                                                    <View style={styles.gradeRight}>
+                                                        <Text style={[styles.gradeValue, { color: colors.textSecondary }]} numberOfLines={1}>
+                                                            {grade || "Pulsa para definir curso"}
+                                                        </Text>
+                                                        <Ionicons name="pencil-outline" size={16} color={colors.icon} />
+                                                    </View>
+                                                </TouchableOpacity>
+
+                                                {editingGrade && (
+                                                    <>
+                                                        <TextInput
+                                                            value={draftGrade}
+                                                            onChangeText={setDraftGrade}
+                                                            placeholder="Ej: 1 DAM"
+                                                            placeholderTextColor={colors.placeholder}
+                                                            style={[
+                                                                styles.gradeInput,
+                                                                {
+                                                                    color: colors.text,
+                                                                    borderColor: colors.border,
+                                                                    backgroundColor: colors.surface,
+                                                                },
+                                                            ]}
+                                                            maxLength={40}
+                                                            autoFocus
+                                                        />
+                                                        <View style={styles.gradeActions}>
+                                                            <Button
+                                                                title="Cancelar"
+                                                                onPress={handleCancelEditGrade}
+                                                                variant="outline"
+                                                                style={{ flex: 1 }}
+                                                            />
+                                                            <Button
+                                                                title="Guardar curso"
+                                                                onPress={handleSaveGrade}
+                                                                loading={savingGrade}
+                                                                variant="outline"
+                                                                style={{ flex: 1 }}
+                                                            />
+                                                        </View>
+                                                    </>
+                                                )}
+                                            </View>
                                             <Button
                                                 title="Cambiar foto de perfil"
                                                 onPress={handleChangeProfilePhoto}
@@ -286,6 +377,33 @@ const styles = StyleSheet.create({
     optionContent: {
         paddingVertical: Spacing.sm,
         paddingTop: Spacing.md,
+        gap: Spacing.md,
+    },
+    gradeSection: {
+        gap: Spacing.sm,
+    },
+    gradeDisplayRow: {
+        paddingVertical: Spacing.sm,
+    },
+    gradeRight: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: Spacing.xs,
+        maxWidth: "55%",
+    },
+    gradeValue: {
+        ...Typography.body,
+    },
+    gradeInput: {
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.md,
+        ...Typography.body,
+    },
+    gradeActions: {
+        flexDirection: "row",
+        gap: Spacing.sm,
     },
     radio: {
         width: 22,

@@ -7,20 +7,24 @@ import BottomSheet, {
     BottomSheetView,
 } from "@gorhom/bottom-sheet"
 import { router } from "expo-router"
-import { forwardRef, useCallback, useState } from "react"
+import { Ionicons } from "@expo/vector-icons"
+import { forwardRef, useCallback, useMemo, useState } from "react"
 import {
     ActivityIndicator,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 
 export type SheetUser = {
     user_id: string
     username: string
+    course?: string
 }
 
 type UserBottomSheetProps = {
@@ -31,10 +35,15 @@ type UserBottomSheetProps = {
 export const UserBottomSheet = forwardRef<BottomSheet, UserBottomSheetProps>(
     function UserBottomSheet({ user, onClose }, ref) {
         const { colors } = useTheme()
+        const insets = useSafeAreaInsets()
         const [dmModalVisible, setDmModalVisible] = useState(false)
         const [initialMessage, setInitialMessage] = useState("")
         const [sending, setSending] = useState(false)
         const [checking, setChecking] = useState(false)
+        const snapPoints = useMemo(
+            () => (Platform.OS === "web" ? ["30%"] : ["25%"]),
+            []
+        )
 
         const renderBackdrop = useCallback(
             (props: any) => (
@@ -77,36 +86,50 @@ export const UserBottomSheet = forwardRef<BottomSheet, UserBottomSheetProps>(
             <>
                 <BottomSheetModal
                     ref={ref as any}
-                    enableDynamicSizing
+                    snapPoints={snapPoints}
+                    enableDynamicSizing={false}
+                    bottomInset={insets.bottom}
                     backdropComponent={renderBackdrop}
                     backgroundStyle={{ backgroundColor: colors.card }}
                     handleIndicatorStyle={{ backgroundColor: colors.border }}
                 >
-                    <BottomSheetView style={styles.content}>
+                    <BottomSheetView style={[styles.content, { paddingBottom: Spacing.lg + insets.bottom }]}>
                         {user ? (
                             <>
-                                <View style={styles.userHeader}>
-                                    <View style={[styles.avatar, { backgroundColor: colors.surfaceVariant }]}>
-                                        <Text style={[styles.avatarText, { color: colors.textSecondary }]}>
-                                            {user.username.charAt(0).toUpperCase()}
+                                <View style={styles.userCard}>
+                                    <View style={[styles.avatar, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                                        <Text style={[styles.avatarText, { color: colors.text }]}>
+                                            {user.username.slice(0, 2).toUpperCase()}
                                         </Text>
                                     </View>
-                                    <Text style={[styles.username, { color: colors.text }]}>
-                                        {user.username}
-                                    </Text>
+                                    <View style={styles.userInfo}>
+                                        <Text style={[styles.username, { color: colors.text }]}>Nombre</Text>
+                                        <Text style={[styles.userValue, { color: colors.text }]} numberOfLines={1}>
+                                            {user.username}
+                                        </Text>
+
+                                        <TouchableOpacity
+                                            style={styles.actionRow}
+                                            onPress={handleOpenDM}
+                                            disabled={checking}
+                                            activeOpacity={0.7}
+                                        >
+                                            {checking ? (
+                                                <ActivityIndicator size="small" color={colors.primary} />
+                                            ) : (
+                                                <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.primary} />
+                                            )}
+                                            <Text style={[styles.actionText, { color: colors.text }]}>Mensaje directo</Text>
+                                        </TouchableOpacity>
+
+                                        <View style={styles.courseRow}>
+                                            <Ionicons name="school-outline" size={16} color={colors.textSecondary} />
+                                            <Text style={[styles.courseText, { color: colors.textSecondary }]}>
+                                                {user.course?.trim() ? user.course : "Sin curso"}
+                                            </Text>
+                                        </View>
+                                    </View>
                                 </View>
-
-                                <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-                                <TouchableOpacity
-                                    style={[styles.action, { borderColor: colors.border }]}
-                                    onPress={handleOpenDM}
-                                    disabled={checking}
-                                >
-                                    <Text style={[styles.actionText, { color: colors.text }]}>
-                                        Enviar Mensaje Directo
-                                    </Text>
-                                </TouchableOpacity>
                             </>
                         ) : null}
                     </BottomSheetView>
@@ -177,36 +200,53 @@ export const UserBottomSheet = forwardRef<BottomSheet, UserBottomSheetProps>(
 const styles = StyleSheet.create({
     content: {
         paddingHorizontal: Spacing.xl,
-        paddingBottom: Spacing.xxl,
-        gap: Spacing.lg,
-    },
-    userHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: Spacing.md,
+        paddingBottom: Spacing.lg,
         paddingTop: Spacing.sm,
     },
+    userCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: Spacing.lg,
+    },
     avatar: {
-        width: 48,
-        height: 48,
+        width: 120,
+        height: 120,
         borderRadius: BorderRadius.full,
+        borderWidth: 2,
         alignItems: "center",
         justifyContent: "center",
     },
     avatarText: {
         ...Typography.h3,
     },
+    userInfo: {
+        flex: 1,
+        gap: Spacing.sm,
+        minWidth: 0,
+    },
     username: {
+        ...Typography.body,
+        fontWeight: "600",
+    },
+    userValue: {
         ...Typography.h3,
+        marginTop: -Spacing.xs,
     },
-    divider: {
-        height: 1,
-    },
-    action: {
-        paddingVertical: Spacing.md,
-        borderBottomWidth: 1,
+    actionRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: Spacing.xs,
+        marginTop: Spacing.xs,
     },
     actionText: {
+        ...Typography.body,
+    },
+    courseRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: Spacing.xs,
+    },
+    courseText: {
         ...Typography.body,
     },
     // Modal
