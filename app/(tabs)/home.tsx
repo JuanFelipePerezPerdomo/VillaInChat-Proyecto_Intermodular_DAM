@@ -29,6 +29,7 @@ const ICON_COLORS = [
 export default function Home() {
   const [user, setUser] = useState<any>(null)
   const [joinedGroups, setJoinedGroups] = useState<Group[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const { colors } = useTheme()
 
@@ -39,6 +40,12 @@ export default function Home() {
       return
     }
     setUser(currentUser)
+    const { data: profile } = await supabase
+      .from("user_profile")
+      .select("user_role")
+      .eq("user_id", currentUser.id)
+      .single()
+    setIsAdmin(profile?.user_role === "ADMIN")
     setJoinedGroups(await getJoinedGroups(currentUser.id))
     setLoading(false)
   }
@@ -71,10 +78,12 @@ export default function Home() {
             <EmptyDescription>Pide a un administrador que te añada a un grupo</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button
-              title="Nuevo grupo"
-              onPress={() => router.push("/groups/newGroupPage")}
-            />
+            {isAdmin && (
+              <Button
+                title="Nuevo grupo"
+                onPress={() => router.push("/groups/newGroupPage")}
+              />
+            )}
           </EmptyContent>
         </Empty>
       </SafeAreaView>
@@ -86,6 +95,7 @@ export default function Home() {
       <WebGroupGrid
         groups={joinedGroups}
         onAction={loadData}
+        isAdmin={isAdmin}
       />
     )
   }
@@ -95,11 +105,13 @@ export default function Home() {
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.pageHeader}>
           <Text style={[styles.pageTitle, { color: colors.text }]}>Grupos</Text>
-          <Button
-            title="Nuevo grupo"
-            onPress={() => router.push("/groups/newGroupPage" as any)}
-            size="small"
-          />
+          {isAdmin && (
+            <Button
+              title="Nuevo grupo"
+              onPress={() => router.push("/groups/newGroupPage" as any)}
+              size="small"
+            />
+          )}
         </View>
         <GroupList
           title="Tus Grupos"
@@ -129,8 +141,12 @@ function GroupList({
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <GroupCard {...item} onAction={onAction} />
+        renderItem={({ item, index }) => (
+          <GroupCard
+            {...item}
+            onAction={onAction}
+            iconColor={ICON_COLORS[index % ICON_COLORS.length]}
+          />
         )}
         scrollEnabled={false}
       />
@@ -142,16 +158,43 @@ function GroupCard({
   id,
   name,
   memberCount,
+  iconColor,
   onAction,
-}: Group & { onAction: () => void }) {
+}: Group & { onAction: () => void, iconColor?: string }) {
   const [loadingAction, setLoadingAction] = useState(false)
   const { colors, isDark } = useTheme()
+  const isMobile = Platform.OS !== "web"
 
   async function handleLeave() {
     setLoadingAction(true)
     await leaveGroup(id)
     onAction()
     setLoadingAction(false)
+  }
+
+  if (isMobile) {
+    return (
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: colors.surface }]}
+        onPress={() => router.push({ pathname: "/groups/[id]" as any, params: { id } })}
+        activeOpacity={0.75}
+        disabled={loadingAction}
+      >
+        <View style={styles.mobileCardHeader}>
+          <View style={styles.mobileGroupTitleRow}>
+            <View style={[styles.mobileGroupIcon, { backgroundColor: iconColor ?? colors.primary + "33", borderColor: colors.border }]} />
+            <View style={styles.mobileGroupTextBlock}>
+              <Text style={[styles.cardTitle, { color: isDark ? colors.text : "#000000" }]} numberOfLines={1}>
+                {name}
+              </Text>
+              <Text style={[styles.mobileGroupMembers, { color: isDark ? colors.textSecondary : "#000000" }]}>
+                {memberCount} {memberCount === 1 ? "miembro" : "miembros"}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    )
   }
 
   return (
@@ -184,9 +227,11 @@ function GroupCard({
 function WebGroupGrid({
   groups,
   onAction,
+  isAdmin,
 }: {
   groups: Group[]
   onAction: () => void
+  isAdmin: boolean
 }) {
   const { colors, isDark } = useTheme()
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -199,7 +244,7 @@ function WebGroupGrid({
     setLoadingId(null)
   }
 
-  const items: (Group | null)[] = [...groups, null]
+  const items: (Group | null)[] = isAdmin ? [...groups, null] : [...groups]
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -270,6 +315,20 @@ const styles = StyleSheet.create({
   scrollContainer: { flexGrow: 1, padding: 16, gap: 24, paddingBottom: 96 },
   pageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   pageTitle: { fontSize: 22, fontWeight: "700" },
+  mobileGroupTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  mobileGroupIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  mobileCardHeader: { marginBottom: 12 },
+  mobileGroupTextBlock: { flex: 1, minWidth: 0 },
+  mobileGroupMembers: { fontSize: 13, marginTop: 6 },
   section: { gap: 12 },
   sectionTitle: { fontSize: 20, fontWeight: "600" },
   card: { borderRadius: 12, padding: 16, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },

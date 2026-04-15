@@ -1,6 +1,7 @@
 import { useTheme } from "@/src/hooks"
 import { useUserSheet } from "@/src/providers/UserSheetProvider"
 import { getCurrentUser } from "@/src/services/getCurrentUser"
+import { insertMentions, parseMentions } from "@/src/services/mentionServices"
 import { supabase } from "@/src/lib/supabase"
 import { BorderRadius, Spacing, Typography } from "@/src/themes"
 import { Ionicons } from "@expo/vector-icons"
@@ -9,6 +10,7 @@ import {
     ActivityIndicator, FlatList, KeyboardAvoidingView,
     Platform, StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from "react-native"
+import { MentionInput } from "./MentionInput"
 
 type Message = {
     id: number
@@ -20,13 +22,16 @@ type Message = {
 
 type UserProfile = { user_id: string; username: string }
 
+type GroupMember = { user_id: string; username: string }
+
 type Props = {
     chatId: string
     chatName: string
     onBack: () => void
+    groupMembers?: GroupMember[]
 }
 
-export function ChatPanel({ chatId, chatName, onBack }: Props) {
+export function ChatPanel({ chatId, chatName, onBack, groupMembers }: Props) {
     const { colors, isDark } = useTheme()
     const { openUserSheet } = useUserSheet()
 
@@ -89,13 +94,31 @@ export function ChatPanel({ chatId, chatName, onBack }: Props) {
     async function handleSend() {
         if (!newMessage.trim() || !userProfile) return
         setSending(true)
-        const { error } = await supabase.from("messages").insert({
-            content: newMessage.trim(),
-            FK_chat_id: chatId,
-            FK_author_id: userProfile.user_id,
-            read: false,
-        })
-        if (!error) setNewMessage("")
+        const content = newMessage.trim()
+
+        const { data: inserted, error } = await supabase
+            .from("messages")
+            .insert({
+                content,
+                FK_chat_id: chatId,
+                FK_author_id: userProfile.user_id,
+                read: false,
+            })
+            .select("id")
+            .single()
+
+        if (!error && inserted) {
+            setNewMessage("")
+            // Parse and insert mentions (only for group chats)
+            // groupMembers can be [] — @everyone doesn't require members in the list
+            if (groupMembers !== undefined) {
+                const mentions = parseMentions(content, groupMembers)
+                console.log("[mentions] parsed from content:", mentions)
+                if (mentions.length > 0) {
+                    await insertMentions(inserted.id, chatId, userProfile.user_id, mentions)
+                }
+            }
+        }
         setSending(false)
     }
 
@@ -158,20 +181,29 @@ export function ChatPanel({ chatId, chatName, onBack }: Props) {
 
             {/* Input */}
             <View style={[styles.inputRow, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                <TextInput
-                    style={[styles.input, { backgroundColor: colors.surface, color: isDark ? colors.text : "#ffffff" }]}
-                    value={newMessage}
-                    onChangeText={setNewMessage}
-                    placeholder="Escriba un mensaje..."
-                    placeholderTextColor={isDark ? colors.placeholder : "#000000"}
-                    multiline
-                    maxLength={500}
-                    onKeyPress={({ nativeEvent }) => {
-                        if (nativeEvent.key === "Enter" && !(nativeEvent as any).shiftKey) {
-                            handleSend()
-                        }
-                    }}
-                />
+                {groupMembers ? (
+                    <MentionInput
+                        value={newMessage}
+                        onChangeText={setNewMessage}
+                        groupMembers={groupMembers}
+                        onSubmitEditing={handleSend}
+                    />
+                ) : (
+                    <TextInput
+                        style={[styles.input, { backgroundColor: colors.surface, color: isDark ? colors.text : "#ffffff" }]}
+                        value={newMessage}
+                        onChangeText={setNewMessage}
+                        placeholder="Escriba un mensaje..."
+                        placeholderTextColor={isDark ? colors.placeholder : "#000000"}
+                        multiline
+                        maxLength={500}
+                        onKeyPress={({ nativeEvent }) => {
+                            if (nativeEvent.key === "Enter" && !(nativeEvent as any).shiftKey) {
+                                handleSend()
+                            }
+                        }}
+                    />
+                )}
                 <TouchableOpacity
                     style={[
                         styles.sendBtn,

@@ -36,7 +36,7 @@ export function useNotification () {
         // si el usuario toca la notificacion
         const sub = Notification.addNotificationResponseReceivedListener(response => {
             const { room_id } = response.notification.request.content.data;
-            if (room_id) router.replace(`/rooms/${room_id}`)
+            if (room_id) router.push(`/rooms/${room_id}`)
         });
 
         return () => sub.remove();

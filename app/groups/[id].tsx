@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { router, useLocalSearchParams } from "expo-router"
 import { useEffect, useState } from "react"
 import {
-    ActivityIndicator, FlatList, Modal, StyleSheet,
+    ActivityIndicator, BackHandler, FlatList, Modal, StyleSheet,
     Text, TouchableOpacity, useWindowDimensions, View,
 } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
@@ -31,10 +31,20 @@ type GroupChat = {
     chat_type: ChatType
 }
 
+type GroupListItem =
+    | { kind: "chat"; chat: GroupChat }
+    | { kind: "info"; id: string }
+
 type GroupInfo = {
     group_id: string
     group_name: string
     userRole: string
+}
+
+type GroupMemberInfo = {
+    user_id: string
+    username: string
+    user_role: string
 }
 
 const CHAT_TYPE_CONFIG: Record<ChatType, { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }> = {
@@ -63,10 +73,13 @@ export default function GroupPage() {
     // ── Estado del grupo ─────────────────────────────────────────────────────
     const [group, setGroup]               = useState<GroupInfo | null>(null)
     const [chats, setChats]               = useState<GroupChat[]>([])
-    const [groupMembers, setGroupMembers] = useState<UserSearchResult[]>([])
+    const [groupMembers, setGroupMembers]       = useState<UserSearchResult[]>([])
+    const [allGroupMembers, setAllGroupMembers] = useState<UserSearchResult[]>([])
+    const [groupMembersInfo, setGroupMembersInfo] = useState<GroupMemberInfo[]>([])
     const [loading, setLoading]           = useState(true)
     const [isAdmin, setIsAdmin]           = useState(false)
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+    const [infoVisible, setInfoVisible] = useState(false)
 
     // ── Chat activo (panel derecho) ──────────────────────────────────────────
     const [activeChatId, setActiveChatId]     = useState<string | null>(null)
@@ -92,6 +105,19 @@ export default function GroupPage() {
 
     useEffect(() => { loadData() }, [id])
 
+    // Android hardware back: si no hay stack (abierto desde notificación), ir al home
+    useEffect(() => {
+        const handler = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (router.canGoBack()) {
+                router.back()
+            } else {
+                router.replace("/(tabs)/home")
+            }
+            return true
+        })
+        return () => handler.remove()
+    }, [])
+
     // Pre-cargar el último chat visitado cuando AsyncStorage y chats ya estén listos
     useEffect(() => {
         if (lastChatId && chats.length > 0 && !activeChatId) {
@@ -108,10 +134,12 @@ export default function GroupPage() {
         if (!user) { router.replace("/SignIn"); return }
         setCurrentUserId(user.id)
 
-        const [groupData, chatsData, membersData] = await Promise.all([
+        const [groupData, chatsData, membersData, allMembersData, membersInfoData] = await Promise.all([
             getGroupInfo(id, user.id),
             getGroupChats(id, user.id),
-            getGroupMembers(id, user.id),
+            getGroupMembers(id, user.id),          // excludes self → invite modal
+            getAllGroupMembers(id),                 // includes self → mention dropdown
+            getGroupMembersWithRole(id),            // with role → info modal
         ])
 
         if (!groupData) { router.replace("/home"); return }
@@ -119,7 +147,9 @@ export default function GroupPage() {
         setGroup(groupData)
         setIsAdmin(groupData.userRole === "ADMIN")
         setChats(chatsData)
-        setGroupMembers(membersData)
+        setGroupMembers(membersData)         // excludes self → invite modal
+        setAllGroupMembers(allMembersData)   // includes self → mention dropdown
+        setGroupMembersInfo(membersInfoData) // with role → info modal
         setLoading(false)
     }
 
@@ -225,6 +255,20 @@ export default function GroupPage() {
         m.username.toLowerCase().includes(memberSearch.toLowerCase())
     )
 
+    const listItems: GroupListItem[] = (() => {
+        const infoItem: GroupListItem = { kind: "info", id: "__group_info__" }
+        const items = chats.map((chat) => ({ kind: "chat", chat }) as GroupListItem)
+        const announcementsIndex = items.findIndex(
+            (item) => item.kind === "chat" && item.chat.chat_type === "ANNOUNCEMENTS"
+        )
+        if (announcementsIndex >= 0) {
+            const next = [...items]
+            next.splice(announcementsIndex + 1, 0, infoItem)
+            return next
+        }
+        return [...items, infoItem]
+    })()
+
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
 
@@ -244,7 +288,7 @@ export default function GroupPage() {
 
                             {/* Header del grupo */}
                             <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-                                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                                <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/home")} style={styles.backBtn}>
                                     <Ionicons name="arrow-back" size={22} color={colors.primary} />
                                 </TouchableOpacity>
                                 <Text style={[styles.groupName, { color: colors.text }]}>{group?.group_name}</Text>
@@ -267,17 +311,36 @@ export default function GroupPage() {
 
                             {/* Lista de chats */}
                             <FlatList
-                                data={chats}
-                                keyExtractor={(item) => item.chat_id}
+                                data={listItems}
+                                keyExtractor={(item) => item.kind === "chat" ? item.chat.chat_id : item.id}
                                 contentContainerStyle={styles.list}
                                 renderItem={({ item }) => (
-                                    <ChatCard
-                                        chat={item}
-                                        isAdmin={isAdmin}
-                                        isActive={item.chat_id === activeChatId}
-                                        onPress={() => goToChat(item.chat_id, item.name)}
-                                        onManageMembers={() => openMemberSearch(item.chat_id)}
-                                    />
+                                    item.kind === "chat" ? (
+                                        <ChatCard
+                                            chat={item.chat}
+                                            isAdmin={isAdmin}
+                                            isActive={item.chat.chat_id === activeChatId}
+                                            onPress={() => goToChat(item.chat.chat_id, item.chat.name)}
+                                            onManageMembers={() => openMemberSearch(item.chat.chat_id)}
+                                        />
+                                    ) : (
+                                        <TouchableOpacity
+                                            style={[styles.infoCard, { borderColor: colors.border, backgroundColor: colors.card }]}
+                                            onPress={() => setInfoVisible(true)}
+                                            activeOpacity={0.8}
+                                        >
+                                            <View style={[styles.infoCardIcon, { backgroundColor: colors.primary + "18" }]}>
+                                                <Ionicons name="information-circle-outline" size={22} color={colors.primary} />
+                                            </View>
+                                            <View style={styles.cardContent}>
+                                                <Text style={[styles.chatName, { color: colors.text }]}>Información del grupo</Text>
+                                                <Text style={[styles.chatType, { color: colors.textSecondary }]}>
+                                                    Administrador y miembros del grupo
+                                                </Text>
+                                            </View>
+                                            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+                                        </TouchableOpacity>
+                                    )
                                 )}
                                 ListEmptyComponent={
                                     <View style={styles.empty}>
@@ -311,6 +374,7 @@ export default function GroupPage() {
                                     chatId={activeChatId}
                                     chatName={activeChatName}
                                     onBack={goToChannels}
+                                    groupMembers={allGroupMembers}
                                 />
                             ) : (
                                 <View style={styles.noChat}>
@@ -326,6 +390,68 @@ export default function GroupPage() {
             </View>
 
             {/* ─── Modales ──────────────────────────────────────────────────── */}
+
+            {/* Mas informacion del grupo */}
+            <Modal visible={infoVisible} transparent animationType="fade" onRequestClose={() => setInfoVisible(false)}>
+                <View style={styles.overlay}>
+                    <View style={[styles.modal, { backgroundColor: colors.card }]}>
+                        <View style={styles.memberHeader}>
+                            <Text style={[styles.modalTitle, { color: colors.text }]}>Mas informacion</Text>
+                            <TouchableOpacity onPress={() => setInfoVisible(false)} hitSlop={8}>
+                                <Ionicons name="close" size={22} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={[styles.infoBlock, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Administrador</Text>
+                            {groupMembersInfo.filter(m => m.user_role === "ADMIN").length === 0 ? (
+                                <Text style={[styles.infoValue, { color: colors.text }]}>No definido</Text>
+                            ) : (
+                                groupMembersInfo
+                                    .filter(m => m.user_role === "ADMIN")
+                                    .map((admin) => (
+                                        <TouchableOpacity
+                                            key={admin.user_id}
+                                            style={styles.infoMemberRow}
+                                            onPress={() => {
+                                                setInfoVisible(false)
+                                                openUserSheet({ user_id: admin.user_id, username: admin.username })
+                                            }}
+                                        >
+                                            <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+                                            <Text style={[styles.infoValue, { color: colors.text }]}>{admin.username}</Text>
+                                        </TouchableOpacity>
+                                    ))
+                            )}
+                        </View>
+
+                        <View style={[styles.infoBlock, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Miembros del grupo</Text>
+                            <FlatList
+                                data={groupMembersInfo}
+                                keyExtractor={(m) => m.user_id}
+                                style={styles.infoList}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        style={[styles.infoMemberRow, { borderBottomColor: colors.border }]}
+                                        onPress={() => {
+                                            setInfoVisible(false)
+                                            openUserSheet({ user_id: item.user_id, username: item.username })
+                                        }}
+                                    >
+                                        <View style={[styles.memberAvatar, { backgroundColor: colors.primary + "22" }]}>
+                                            <Text style={[styles.memberInitial, { color: colors.primary }]}>
+                                                {item.username[0].toUpperCase()}
+                                            </Text>
+                                        </View>
+                                        <Text style={[styles.memberName, { color: colors.text }]}>{item.username}</Text>
+                                    </TouchableOpacity>
+                                )}
+                            />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             {/* Invitar al grupo */}
             <Modal visible={inviteVisible} transparent animationType="fade" onRequestClose={closeInviteModal}>
@@ -527,6 +653,15 @@ async function getGroupInfo(groupId: string, userId: string): Promise<GroupInfo 
     return { group_id: data.group_id, group_name: data.group_name, userRole: member?.user_role ?? "MEMBER" }
 }
 
+async function getAllGroupMembers(groupId: string): Promise<UserSearchResult[]> {
+    const { data, error } = await supabase
+        .from("group_members")
+        .select("FK_user_id, user_profile (username)")
+        .eq("FK_group_id", groupId)
+    if (error || !data) return []
+    return data.map(m => ({ user_id: m.FK_user_id, username: (m.user_profile as any)?.username ?? "—" }))
+}
+
 async function getGroupMembers(groupId: string, excludeUserId: string): Promise<UserSearchResult[]> {
     const { data, error } = await supabase
         .from("group_members")
@@ -535,6 +670,20 @@ async function getGroupMembers(groupId: string, excludeUserId: string): Promise<
         .neq("FK_user_id", excludeUserId)
     if (error || !data) return []
     return data.map(m => ({ user_id: m.FK_user_id, username: (m.user_profile as any)?.username ?? "—" }))
+}
+
+async function getGroupMembersWithRole(groupId: string): Promise<GroupMemberInfo[]> {
+    const { data, error } = await supabase
+        .from("group_members")
+        .select("FK_user_id, user_role, user_profile (username)")
+        .eq("FK_group_id", groupId)
+
+    if (error || !data) return []
+    return data.map((m: any) => ({
+        user_id: m.FK_user_id,
+        username: m.user_profile?.username ?? "—",
+        user_role: m.user_role ?? "MEMBER",
+    }))
 }
 
 async function getGroupChats(groupId: string, userId: string): Promise<GroupChat[]> {
@@ -616,6 +765,21 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     createCardText: { ...Typography.body, fontWeight: "600" },
+    infoCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: Spacing.md,
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1,
+        padding: Spacing.md,
+    },
+    infoCardIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: "center",
+        alignItems: "center",
+    },
 
     // Panel derecho vacío
     noChat:     { flex: 1, justifyContent: "center", alignItems: "center", gap: Spacing.md },
@@ -649,4 +813,27 @@ const styles = StyleSheet.create({
     memberInitial: { fontSize: 14, fontWeight: "700" },
     memberName:    { flex: 1, fontSize: 14 },
     noMembers:     { fontSize: 13, textAlign: "center", paddingVertical: Spacing.lg },
+    infoBlock: {
+        borderWidth: 1,
+        borderRadius: BorderRadius.lg,
+        padding: Spacing.md,
+        gap: Spacing.sm,
+    },
+    infoLabel: {
+        ...Typography.caption,
+        fontWeight: "600",
+    },
+    infoValue: {
+        ...Typography.body,
+    },
+    infoList: {
+        maxHeight: 240,
+    },
+    infoMemberRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: Spacing.sm,
+        paddingVertical: Spacing.sm,
+        borderBottomWidth: 1,
+    },
 })

@@ -15,7 +15,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 type Room = {
   id: string,
   name: string,
-  memberCount: number
+  memberCount: number,
+  lastMessage: string,
+  lastMessageAt: string | null
 }
 
 const ICON_COLORS = [
@@ -92,7 +94,7 @@ export default function PrivateChatRooms() {
           <Text style={[styles.pageTitle, { color: colors.text }]}>Chats Privados</Text>
         </View>
         <RoomList
-          title="Tus Chats Privados"
+          title=""
           rooms={joinedRooms}
           onAction={loadData}
         />
@@ -115,7 +117,7 @@ function RoomList({
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: isDark ? colors.text : "#000000" }]}>{title}</Text>
+      {title ? <Text style={[styles.sectionTitle, { color: isDark ? colors.text : "#000000" }]}>{title}</Text> : null}
       <FlatList
         data={rooms}
         keyExtractor={(item) => item.id}
@@ -132,10 +134,14 @@ function RoomCard({
   id,
   name,
   memberCount,
+  lastMessage,
+  lastMessageAt,
   onAction,
 }: Room & { onAction: () => void }) {
   const [loadingAction, setLoadingAction] = useState(false)
   const { colors, isDark } = useTheme()
+  const isMobile = Platform.OS !== "web"
+  const lastTime = formatLastMessageTime(lastMessageAt)
 
   async function handleLeave() {
     setLoadingAction(true)
@@ -144,31 +150,34 @@ function RoomCard({
     setLoadingAction(false)
   }
 
-  return (
-    <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.surface }]}
-      onPress={() => router.push({ pathname: "/rooms/[id]" as any, params: { id } })}
-      activeOpacity={0.7}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={[styles.cardTitle, { color: isDark ? colors.text : "#000000" }]}>{name}</Text>
-        <Text style={[styles.cardDescription, { color: isDark ? colors.textSecondary : "#000000" }]}>
-          {memberCount} {memberCount === 1 ? "miembro" : "miembros"}
-        </Text>
-      </View>
-      <View style={styles.cardFooter}>
-        <TouchableOpacity
-          style={[styles.btn, { backgroundColor: colors.error }]}
-          onPress={handleLeave}
-          disabled={loadingAction}
-        >
-          <Text style={[styles.btnText, { color: colors.onPrimary }]}>
-            {loadingAction ? "..." : "Salir"}
+  if (isMobile) {
+    return (
+      <TouchableOpacity
+        style={[styles.mobileRow, { borderBottomColor: colors.border }]}
+        onPress={() => router.push({ pathname: "/rooms/[id]" as any, params: { id } })}
+        activeOpacity={0.75}
+        onLongPress={handleLeave}
+        disabled={loadingAction}
+      >
+        <View style={[styles.mobileAvatar, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+          <Text style={[styles.mobileAvatarText, { color: colors.text }]}>
+            {name.charAt(0).toUpperCase()}
           </Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  )
+        </View>
+        <View style={styles.mobileContent}>
+          <Text style={[styles.mobileTitle, { color: isDark ? colors.text : "#000000" }]} numberOfLines={1}>
+            {name.toUpperCase()}
+          </Text>
+          <Text style={[styles.mobileSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
+            {lastMessage || "Sin mensajes"}
+          </Text>
+          <Text style={[styles.mobileTime, { color: colors.textTertiary }]}>{lastTime}</Text>
+        </View>
+      </TouchableOpacity>
+    )
+  }
+
+  return null
 }
 
 function WebRoomGrid({
@@ -228,17 +237,52 @@ async function getPrivateRooms(userId: string): Promise<Room[]> {
 
   if (error || !data) return []
 
-  return data
+  const rooms = data
     .filter(room => room.chat_members.some((u: any) => u.FK_user_id === userId))
-    .map((room) => {
-      const otherMember = room.chat_members.find((u: any) => u.FK_user_id !== userId)
-      const displayName = (otherMember?.user_profile as any)?.username ?? "DM"
+    .map((room) => ({
+      chatId: room.chat_id,
+      members: room.chat_members,
+    }))
+
+  const roomMessages = await Promise.all(
+    rooms.map(async (room) => {
+      const { data: lastMsg } = await supabase
+        .from("messages")
+        .select("content, created_at")
+        .eq("FK_chat_id", room.chatId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
       return {
-        id: room.chat_id,
-        name: displayName,
-        memberCount: room.chat_members.length,
+        chatId: room.chatId,
+        lastMessage: lastMsg?.content ?? "",
+        lastMessageAt: lastMsg?.created_at ?? null,
       }
     })
+  )
+
+  const lastMessageByChatId = new Map(roomMessages.map((r) => [r.chatId, r.lastMessage]))
+  const lastMessageTimeByChatId = new Map(roomMessages.map((r) => [r.chatId, r.lastMessageAt]))
+
+  return rooms
+    .map((room) => {
+      const chatMembers = room.members as any[]
+      const otherMember = chatMembers.find((u: any) => u.FK_user_id !== userId)
+      const displayName = (otherMember?.user_profile as any)?.username ?? "DM"
+      return {
+        id: room.chatId,
+        name: displayName,
+        memberCount: chatMembers.length,
+        lastMessage: lastMessageByChatId.get(room.chatId) ?? "",
+        lastMessageAt: lastMessageTimeByChatId.get(room.chatId) ?? null,
+      }
+    })
+}
+
+function formatLastMessageTime(iso: string | null): string {
+  if (!iso) return ""
+  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 const styles = StyleSheet.create({
@@ -249,13 +293,41 @@ const styles = StyleSheet.create({
   pageTitle: { fontSize: 22, fontWeight: "700" },
   section: { gap: 12 },
   sectionTitle: { fontSize: 20, fontWeight: "600" },
-  card: { borderRadius: 12, padding: 16, marginBottom: 10, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  cardHeader: { marginBottom: 12, gap: 4 },
-  cardTitle: { fontSize: 16, fontWeight: "600" },
-  cardDescription: { fontSize: 13 },
-  cardFooter: { flexDirection: "row" },
-  btn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, alignItems: "center", justifyContent: "center" },
-  btnText: { fontWeight: "500", fontSize: 13 },
+  mobileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    gap: 14,
+    borderBottomWidth: 2,
+  },
+  mobileAvatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mobileAvatarText: {
+    fontSize: 30,
+    fontWeight: "600",
+  },
+  mobileContent: {
+    flex: 1,
+    gap: 10,
+  },
+  mobileTitle: {
+    fontSize: 28,
+    fontWeight: "600",
+  },
+  mobileSubtitle: {
+    fontSize: 18,
+  },
+  mobileTime: {
+    fontSize: 13,
+    alignSelf: "flex-end",
+    marginTop: 6,
+  },
   // Web grid
   webScrollContainer: { padding: 24, paddingLeft: 36, paddingBottom: 48 },
   webTitle: { fontSize: 20, fontWeight: "600", marginBottom: 16 },
