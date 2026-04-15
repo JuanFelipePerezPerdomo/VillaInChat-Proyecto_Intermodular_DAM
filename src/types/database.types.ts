@@ -133,6 +133,68 @@ export type Database = {
         }
         Relationships: []
       }
+      mentions: {
+        Row: {
+          created_at: string
+          FK_chat_id: string
+          FK_message_id: number
+          FK_recipent_id: string | null
+          FK_sender_id: string
+          mention_id: number
+          read: boolean
+          type: Database["public"]["Enums"]["MentionType"]
+        }
+        Insert: {
+          created_at?: string
+          FK_chat_id: string
+          FK_message_id: number
+          FK_recipent_id?: string | null
+          FK_sender_id: string
+          mention_id?: number
+          read?: boolean
+          type: Database["public"]["Enums"]["MentionType"]
+        }
+        Update: {
+          created_at?: string
+          FK_chat_id?: string
+          FK_message_id?: number
+          FK_recipent_id?: string | null
+          FK_sender_id?: string
+          mention_id?: number
+          read?: boolean
+          type?: Database["public"]["Enums"]["MentionType"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentions_FK_chat_id_fkey"
+            columns: ["FK_chat_id"]
+            isOneToOne: false
+            referencedRelation: "chat_room"
+            referencedColumns: ["chat_id"]
+          },
+          {
+            foreignKeyName: "mentions_FK_message_id_fkey"
+            columns: ["FK_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mentions_FK_recipent_id_fkey"
+            columns: ["FK_recipent_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "mentions_FK_sender_id_fkey"
+            columns: ["FK_sender_id"]
+            isOneToOne: false
+            referencedRelation: "user_profile"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -221,6 +283,7 @@ export type Database = {
     Enums: {
       ChatPrivileges: "ADMIN" | "MEMBER" | "CLASS_REP"
       ChatType: "PRIVATE" | "PUBLIC" | "ANNOUNCEMENTS"
+      MentionType: "USER" | "EVERYONE"
       UserType: "ADMIN" | "TEACHER" | "STUDENT"
     }
     CompositeTypes: {
@@ -351,6 +414,7 @@ export const Constants = {
     Enums: {
       ChatPrivileges: ["ADMIN", "MEMBER", "CLASS_REP"],
       ChatType: ["PRIVATE", "PUBLIC", "ANNOUNCEMENTS"],
+      MentionType: ["USER", "EVERYONE"],
       UserType: ["ADMIN", "TEACHER", "STUDENT"],
     },
   },

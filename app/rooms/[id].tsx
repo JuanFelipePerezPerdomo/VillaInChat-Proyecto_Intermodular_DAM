@@ -6,7 +6,7 @@ import { BorderRadius, Spacing, Typography } from "@/src/themes";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, BackHandler, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type Room = {
@@ -62,6 +62,21 @@ export default function RoomPage() {
         }
         loadData()
     }, [])
+
+    // Android hardware back button: if no history, navigate to a safe screen
+    useEffect(() => {
+        const handler = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (router.canGoBack()) {
+                router.back()
+            } else if (room?.FK_group_id) {
+                router.replace({ pathname: "/groups/[id]" as any, params: { id: room.FK_group_id } })
+            } else {
+                router.replace("/(tabs)/privateChatRooms")
+            }
+            return true // prevent default behaviour
+        })
+        return () => handler.remove()
+    }, [room])
 
     useEffect(() => {
         if (!id) return

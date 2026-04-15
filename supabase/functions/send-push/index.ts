@@ -22,6 +22,13 @@ Deno.serve(async (req) => {
     const authorRole = author?.user_role ?? "STUDENT";
     console.log("Autor:", authorName);
 
+    // @everyone ya tiene su propia notificación prioritaria en send-mention-notification
+    // → evitar la notificación duplicada del mensaje genérico
+    if (content.includes("@everyone")) {
+        console.log("@everyone detectado — delegando a send-mention-notification");
+        return new Response(JSON.stringify({ ok: false, reason: "Handled by mention notification" }), { status: 200 });
+    }
+
     // 2. Obtener todos los miembros del chat excepto el autor
     const { data: members, error } = await supabase
         .from("chat_members")
@@ -45,7 +52,7 @@ Deno.serve(async (req) => {
         .not("push_token", "is", null)
         .eq("notifications_enabled", true);
 
-    const tokens = profiles?.map((p) => p.push_token).filter(Boolean) ?? [];
+    const tokens = [...new Set(profiles?.map((p) => p.push_token).filter(Boolean) ?? [])];
     console.log("Tokens encontrados:", tokens.length);
 
     if (tokens.length === 0) {

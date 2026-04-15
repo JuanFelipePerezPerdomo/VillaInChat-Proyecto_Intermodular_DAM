@@ -1,10 +1,12 @@
 import { useTheme } from "@/src/hooks";
+import { useNotificationContext } from "@/src/providers/NotificationProvider";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
 export default function RootLayout(){
 
     const { colors } = useTheme();
+    const { mentionUnreadCount } = useNotificationContext();
 
     return(
         <Tabs
@@ -45,6 +47,7 @@ export default function RootLayout(){
                 name="notifications"
                 options={{
                     title: "Menciones",
+                    tabBarBadge: mentionUnreadCount > 0 ? mentionUnreadCount : undefined,
                     tabBarIcon: ({ color }) => (
                         <MaterialCommunityIcons name="bell" size={24} color={color}/>
                     )

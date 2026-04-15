@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { router, useLocalSearchParams } from "expo-router"
 import { useEffect, useState } from "react"
 import {
-    ActivityIndicator, FlatList, Modal, StyleSheet,
+    ActivityIndicator, BackHandler, FlatList, Modal, StyleSheet,
     Text, TouchableOpacity, useWindowDimensions, View,
 } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
@@ -63,7 +63,8 @@ export default function GroupPage() {
     // ── Estado del grupo ─────────────────────────────────────────────────────
     const [group, setGroup]               = useState<GroupInfo | null>(null)
     const [chats, setChats]               = useState<GroupChat[]>([])
-    const [groupMembers, setGroupMembers] = useState<UserSearchResult[]>([])
+    const [groupMembers, setGroupMembers]       = useState<UserSearchResult[]>([])
+    const [allGroupMembers, setAllGroupMembers] = useState<UserSearchResult[]>([])
     const [loading, setLoading]           = useState(true)
     const [isAdmin, setIsAdmin]           = useState(false)
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
@@ -92,6 +93,19 @@ export default function GroupPage() {
 
     useEffect(() => { loadData() }, [id])
 
+    // Android hardware back: si no hay stack (abierto desde notificación), ir al home
+    useEffect(() => {
+        const handler = BackHandler.addEventListener("hardwareBackPress", () => {
+            if (router.canGoBack()) {
+                router.back()
+            } else {
+                router.replace("/(tabs)/home")
+            }
+            return true
+        })
+        return () => handler.remove()
+    }, [])
+
     // Pre-cargar el último chat visitado cuando AsyncStorage y chats ya estén listos
     useEffect(() => {
         if (lastChatId && chats.length > 0 && !activeChatId) {
@@ -108,10 +122,11 @@ export default function GroupPage() {
         if (!user) { router.replace("/SignIn"); return }
         setCurrentUserId(user.id)
 
-        const [groupData, chatsData, membersData] = await Promise.all([
+        const [groupData, chatsData, membersData, allMembersData] = await Promise.all([
             getGroupInfo(id, user.id),
             getGroupChats(id, user.id),
-            getGroupMembers(id, user.id),
+            getGroupMembers(id, user.id),          // excludes self → invite modal
+            getAllGroupMembers(id),                 // includes self → mention dropdown
         ])
 
         if (!groupData) { router.replace("/home"); return }
@@ -119,7 +134,8 @@ export default function GroupPage() {
         setGroup(groupData)
         setIsAdmin(groupData.userRole === "ADMIN")
         setChats(chatsData)
-        setGroupMembers(membersData)
+        setGroupMembers(membersData)         // excludes self → invite modal
+        setAllGroupMembers(allMembersData)   // includes self → mention dropdown
         setLoading(false)
     }
 
@@ -244,7 +260,7 @@ export default function GroupPage() {
 
                             {/* Header del grupo */}
                             <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-                                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                                <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/home")} style={styles.backBtn}>
                                     <Ionicons name="arrow-back" size={22} color={colors.primary} />
                                 </TouchableOpacity>
                                 <Text style={[styles.groupName, { color: colors.text }]}>{group?.group_name}</Text>
@@ -311,6 +327,7 @@ export default function GroupPage() {
                                     chatId={activeChatId}
                                     chatName={activeChatName}
                                     onBack={goToChannels}
+                                    groupMembers={allGroupMembers}
                                 />
                             ) : (
                                 <View style={styles.noChat}>
@@ -525,6 +542,15 @@ async function getGroupInfo(groupId: string, userId: string): Promise<GroupInfo 
     if (error || !data) return null
     const member = (data.group_members as any)[0]
     return { group_id: data.group_id, group_name: data.group_name, userRole: member?.user_role ?? "MEMBER" }
+}
+
+async function getAllGroupMembers(groupId: string): Promise<UserSearchResult[]> {
+    const { data, error } = await supabase
+        .from("group_members")
+        .select("FK_user_id, user_profile (username)")
+        .eq("FK_group_id", groupId)
+    if (error || !data) return []
+    return data.map(m => ({ user_id: m.FK_user_id, username: (m.user_profile as any)?.username ?? "—" }))
 }
 
 async function getGroupMembers(groupId: string, excludeUserId: string): Promise<UserSearchResult[]> {

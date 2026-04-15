@@ -1,4 +1,5 @@
 export { useCurrentUser } from "./useCurrentUser";
+export { useMentions } from "./useMentions";
 export { useGroupMemberSearch } from "./useGroupMemberSearch";
 export { useLastGroupChat } from "./useLastGroupChat";
 export { useNotification } from "./useNotification";

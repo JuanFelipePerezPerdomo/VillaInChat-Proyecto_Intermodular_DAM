@@ -80,6 +80,17 @@ export type UpdateProfileData = {
   nie?: string;
 };
 
+// Mentions
+export type Mention = Database['public']['Tables']['mentions']['Row'];
+export type MentionInsert = Database['public']['Tables']['mentions']['Insert'];
+export type MentionType = Database['public']['Enums']['MentionType'];
+
+export type MentionWithDetails = Mention & {
+    sender: { username: string }
+    chat: { name: string | null }
+    message: { content: string }
+}
+
 // Types no relacionados con la DB:
 export { DEFAULT_SETTINGS } from "./settings";
 export type { Settings, ThemeMode } from "./settings";
