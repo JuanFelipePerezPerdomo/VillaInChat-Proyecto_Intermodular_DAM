@@ -25,6 +25,10 @@ export type SheetUser = {
     user_id: string
     username: string
     course?: string
+    groupId?: string
+    isCurrentUserAdmin?: boolean
+    targetUserRoleInGroup?: string
+    onRoleToggle?: () => void
 }
 
 type UserBottomSheetProps = {
@@ -103,13 +107,12 @@ export const UserBottomSheet = forwardRef<BottomSheet, UserBottomSheetProps>(
                                         </Text>
                                     </View>
                                     <View style={styles.userInfo}>
-                                        <Text style={[styles.username, { color: colors.text }]}>Nombre</Text>
                                         <Text style={[styles.userValue, { color: colors.text }]} numberOfLines={1}>
                                             {user.username}
                                         </Text>
 
                                         <TouchableOpacity
-                                            style={styles.actionRow}
+                                            style={[styles.dmButton, { borderColor: colors.primary }]}
                                             onPress={handleOpenDM}
                                             disabled={checking}
                                             activeOpacity={0.7}
@@ -119,8 +122,30 @@ export const UserBottomSheet = forwardRef<BottomSheet, UserBottomSheetProps>(
                                             ) : (
                                                 <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.primary} />
                                             )}
-                                            <Text style={[styles.actionText, { color: colors.text }]}>Mensaje directo</Text>
+                                            <Text style={[styles.dmButtonText, { color: colors.primary }]}>Enviar mensaje</Text>
                                         </TouchableOpacity>
+
+                                        {user.isCurrentUserAdmin && user.targetUserRoleInGroup !== "ADMIN" && (
+                                            <TouchableOpacity
+                                                style={[styles.dmButton, { borderColor: user.targetUserRoleInGroup === "CLASS_REP" ? "#f59e0b" : colors.border, marginTop: 4 }]}
+                                                onPress={() => {
+                                                    if (user.onRoleToggle) {
+                                                        user.onRoleToggle()
+                                                        onClose()
+                                                    }
+                                                }}
+                                                activeOpacity={0.7}
+                                            >
+                                                <Ionicons 
+                                                    name={user.targetUserRoleInGroup === "CLASS_REP" ? "star" : "star-outline"} 
+                                                    size={16} 
+                                                    color={user.targetUserRoleInGroup === "CLASS_REP" ? "#f59e0b" : colors.textSecondary} 
+                                                />
+                                                <Text style={[styles.dmButtonText, { color: user.targetUserRoleInGroup === "CLASS_REP" ? "#f59e0b" : colors.textSecondary }]}>
+                                                    {user.targetUserRoleInGroup === "CLASS_REP" ? "Quitar delegado" : "Asignar delegado"}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
 
                                         <View style={styles.courseRow}>
                                             <Ionicons name="school-outline" size={16} color={colors.textSecondary} />
@@ -224,22 +249,23 @@ const styles = StyleSheet.create({
         gap: Spacing.sm,
         minWidth: 0,
     },
-    username: {
-        ...Typography.body,
-        fontWeight: "600",
-    },
     userValue: {
         ...Typography.h3,
-        marginTop: -Spacing.xs,
     },
-    actionRow: {
+    dmButton: {
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "center",
         gap: Spacing.xs,
         marginTop: Spacing.xs,
+        borderWidth: 1,
+        borderRadius: BorderRadius.md,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
     },
-    actionText: {
-        ...Typography.body,
+    dmButtonText: {
+        fontSize: 14,
+        fontWeight: "600",
     },
     courseRow: {
         flexDirection: "row",

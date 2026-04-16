@@ -29,9 +29,12 @@ type Props = {
     chatName: string
     onBack: () => void
     groupMembers?: GroupMember[]
+    chatType?: string
+    userGroupRole?: string
 }
 
-export function ChatPanel({ chatId, chatName, onBack, groupMembers }: Props) {
+export function ChatPanel({ chatId, chatName, onBack, groupMembers, chatType, userGroupRole }: Props) {
+    const canWrite = chatType !== "ANNOUNCEMENTS" || userGroupRole === "ADMIN" || userGroupRole === "CLASS_REP"
     const { colors, isDark } = useTheme()
     const { openUserSheet } = useUserSheet()
 
@@ -180,46 +183,55 @@ export function ChatPanel({ chatId, chatName, onBack, groupMembers }: Props) {
             )}
 
             {/* Input */}
-            <View style={[styles.inputRow, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                {groupMembers ? (
-                    <MentionInput
-                        value={newMessage}
-                        onChangeText={setNewMessage}
-                        groupMembers={groupMembers}
-                        onSubmitEditing={handleSend}
-                    />
-                ) : (
-                    <TextInput
-                        style={[styles.input, { backgroundColor: colors.surface, color: isDark ? colors.text : "#ffffff" }]}
-                        value={newMessage}
-                        onChangeText={setNewMessage}
-                        placeholder="Escriba un mensaje..."
-                        placeholderTextColor={isDark ? colors.placeholder : "#000000"}
-                        multiline
-                        maxLength={500}
-                        onKeyPress={({ nativeEvent }) => {
-                            if (nativeEvent.key === "Enter" && !(nativeEvent as any).shiftKey) {
-                                handleSend()
-                            }
-                        }}
-                    />
-                )}
-                <TouchableOpacity
-                    style={[
-                        styles.sendBtn,
-                        { backgroundColor: colors.primary },
-                        (!newMessage.trim() || sending) && { backgroundColor: colors.surfaceVariant },
-                    ]}
-                    onPress={handleSend}
-                    disabled={!newMessage.trim() || sending}
-                >
-                    <Ionicons
-                        name="send"
-                        size={18}
-                        color={(!newMessage.trim() || sending) ? colors.textTertiary : "#fff"}
-                    />
-                </TouchableOpacity>
-            </View>
+            {canWrite ? (
+                <View style={[styles.inputRow, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+                    {groupMembers ? (
+                        <MentionInput
+                            value={newMessage}
+                            onChangeText={setNewMessage}
+                            groupMembers={groupMembers}
+                            onSubmitEditing={handleSend}
+                        />
+                    ) : (
+                        <TextInput
+                            style={[styles.input, { backgroundColor: colors.surface, color: isDark ? colors.text : "#ffffff" }]}
+                            value={newMessage}
+                            onChangeText={setNewMessage}
+                            placeholder="Escriba un mensaje..."
+                            placeholderTextColor={isDark ? colors.placeholder : "#000000"}
+                            multiline
+                            maxLength={500}
+                            onKeyPress={({ nativeEvent }) => {
+                                if (nativeEvent.key === "Enter" && !(nativeEvent as any).shiftKey) {
+                                    handleSend()
+                                }
+                            }}
+                        />
+                    )}
+                    <TouchableOpacity
+                        style={[
+                            styles.sendBtn,
+                            { backgroundColor: colors.primary },
+                            (!newMessage.trim() || sending) && { backgroundColor: colors.surfaceVariant },
+                        ]}
+                        onPress={handleSend}
+                        disabled={!newMessage.trim() || sending}
+                    >
+                        <Ionicons
+                            name="send"
+                            size={18}
+                            color={(!newMessage.trim() || sending) ? colors.textTertiary : "#fff"}
+                        />
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <View style={[styles.readOnlyBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+                    <Ionicons name="lock-closed-outline" size={16} color={colors.textTertiary} />
+                    <Text style={[styles.readOnlyText, { color: colors.textTertiary }]}>
+                        Solo delegados y administradores pueden escribir aquí
+                    </Text>
+                </View>
+            )}
         </KeyboardAvoidingView>
     )
 }
@@ -326,6 +338,18 @@ const styles = StyleSheet.create({
         padding: Spacing.md,
         gap: Spacing.sm,
         borderTopWidth: 1,
+    },
+    readOnlyBar: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: Spacing.xs,
+        padding: Spacing.md,
+        borderTopWidth: 1,
+    },
+    readOnlyText: {
+        ...Typography.bodySmall,
+        fontStyle: "italic",
     },
     input: {
         flex: 1,

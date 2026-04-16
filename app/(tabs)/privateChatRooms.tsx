@@ -89,10 +89,10 @@ export default function PrivateChatRooms() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Chats Privados</Text>
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.pageHeader}>
-          <Text style={[styles.pageTitle, { color: colors.text }]}>Chats Privados</Text>
-        </View>
         <RoomList
           title=""
           rooms={joinedRooms}
@@ -156,7 +156,6 @@ function RoomCard({
         style={[styles.mobileRow, { borderBottomColor: colors.border }]}
         onPress={() => router.push({ pathname: "/rooms/[id]" as any, params: { id } })}
         activeOpacity={0.75}
-        onLongPress={handleLeave}
         disabled={loadingAction}
       >
         <View style={[styles.mobileAvatar, { borderColor: colors.border, backgroundColor: colors.surface }]}>
@@ -288,9 +287,15 @@ function formatLastMessageTime(iso: string | null): string {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  headerTitle: { fontSize: 22, fontWeight: "700" },
   scrollContainer: { flexGrow: 1, padding: 16, gap: 24, paddingBottom: 96 },
-  pageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  pageTitle: { fontSize: 22, fontWeight: "700" },
   section: { gap: 12 },
   sectionTitle: { fontSize: 20, fontWeight: "600" },
   mobileRow: {
@@ -301,27 +306,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
   },
   mobileAvatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 3,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
   },
   mobileAvatarText: {
-    fontSize: 30,
+    fontSize: 18,
     fontWeight: "600",
   },
   mobileContent: {
     flex: 1,
-    gap: 10,
+    gap: 2,
+    justifyContent: "center",
   },
   mobileTitle: {
-    fontSize: 28,
+    fontSize: 18,
     fontWeight: "600",
   },
   mobileSubtitle: {
-    fontSize: 18,
+    fontSize: 14,
   },
   mobileTime: {
     fontSize: 13,

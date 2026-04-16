@@ -29,7 +29,11 @@ export default function Notifications() {
             <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
                 <Text style={[styles.title, { color: colors.text }]}>Menciones</Text>
                 {unreadCount > 0 && (
-                    <TouchableOpacity onPress={markAllAsRead} hitSlop={8}>
+                    <TouchableOpacity
+                        onPress={markAllAsRead}
+                        hitSlop={8}
+                        style={[styles.markAllWrapper, { borderColor: colors.primary }]}
+                    >
                         <Text style={[styles.markAllBtn, { color: colors.primary }]}>
                             Marcar todas leídas
                         </Text>
@@ -166,6 +170,12 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
     },
     title:       { ...Typography.h2, fontWeight: "700" },
+    markAllWrapper: {
+        borderWidth: 1,
+        borderRadius: BorderRadius.md,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
+    },
     markAllBtn:  { fontSize: 13, fontWeight: "600" },
 
     list:      { padding: Spacing.md, gap: Spacing.sm },

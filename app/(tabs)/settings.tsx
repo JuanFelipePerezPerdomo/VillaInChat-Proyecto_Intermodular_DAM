@@ -245,9 +245,12 @@ export default function Settings() {
                                                     </View>
                                                     <View style={styles.gradeRight}>
                                                         <Text style={[styles.gradeValue, { color: colors.textSecondary }]} numberOfLines={1}>
-                                                            {grade || "Pulsa para definir curso"}
+                                                            {grade || "Sin definir"}
                                                         </Text>
-                                                        <Ionicons name="pencil-outline" size={16} color={colors.icon} />
+                                                        <View style={[styles.editBtn, { borderColor: colors.primary }]}>
+                                                            <Ionicons name="pencil-outline" size={14} color={colors.primary} />
+                                                            <Text style={[styles.editBtnText, { color: colors.primary }]}>Editar</Text>
+                                                        </View>
                                                     </View>
                                                 </TouchableOpacity>
 
@@ -393,6 +396,19 @@ const styles = StyleSheet.create({
     },
     gradeValue: {
         ...Typography.body,
+    },
+    editBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.xs,
+    },
+    editBtnText: {
+        fontSize: 13,
+        fontWeight: "600",
     },
     gradeInput: {
         borderWidth: 1,

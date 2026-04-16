@@ -243,6 +243,17 @@ export default function GroupPage() {
     function closeMemberModal()  { setMemberChatId(null); setEligibleMembers([]); setMemberSearch("") }
     function closeCreateModal()  { setCreateVisible(false); setNewChatName(""); setNewChatType("PUBLIC") }
 
+    async function handleToggleClassRep(userId: string, currentRole: string) {
+        const newRole = currentRole === "CLASS_REP" ? "MEMBER" : "CLASS_REP"
+        await supabase
+            .from("group_members")
+            .update({ user_role: newRole })
+            .eq("FK_group_id", id)
+            .eq("FK_user_id", userId)
+        // Refresh member info
+        setGroupMembersInfo(await getGroupMembersWithRole(id))
+    }
+
     if (loading) {
         return (
             <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -375,6 +386,8 @@ export default function GroupPage() {
                                     chatName={activeChatName}
                                     onBack={goToChannels}
                                     groupMembers={allGroupMembers}
+                                    chatType={chats.find(c => c.chat_id === activeChatId)?.chat_type}
+                                    userGroupRole={group?.userRole}
                                 />
                             ) : (
                                 <View style={styles.noChat}>
@@ -415,11 +428,48 @@ export default function GroupPage() {
                                             style={styles.infoMemberRow}
                                             onPress={() => {
                                                 setInfoVisible(false)
-                                                openUserSheet({ user_id: admin.user_id, username: admin.username })
+                                                openUserSheet({ 
+                                                    user_id: admin.user_id, 
+                                                    username: admin.username,
+                                                    groupId: id,
+                                                    isCurrentUserAdmin: isAdmin,
+                                                    targetUserRoleInGroup: admin.user_role,
+                                                    onRoleToggle: () => handleToggleClassRep(admin.user_id, admin.user_role)
+                                                })
                                             }}
                                         >
                                             <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
                                             <Text style={[styles.infoValue, { color: colors.text }]}>{admin.username}</Text>
+                                        </TouchableOpacity>
+                                    ))
+                            )}
+                        </View>
+
+                        <View style={[styles.infoBlock, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Delegados de clase</Text>
+                            {groupMembersInfo.filter(m => m.user_role === "CLASS_REP").length === 0 ? (
+                                <Text style={[styles.infoValue, { color: colors.text }]}>Sin delegados asignados</Text>
+                            ) : (
+                                groupMembersInfo
+                                    .filter(m => m.user_role === "CLASS_REP")
+                                    .map((rep) => (
+                                        <TouchableOpacity
+                                            key={rep.user_id}
+                                            style={styles.infoMemberRow}
+                                            onPress={() => {
+                                                setInfoVisible(false)
+                                                openUserSheet({ 
+                                                    user_id: rep.user_id, 
+                                                    username: rep.username,
+                                                    groupId: id,
+                                                    isCurrentUserAdmin: isAdmin,
+                                                    targetUserRoleInGroup: rep.user_role,
+                                                    onRoleToggle: () => handleToggleClassRep(rep.user_id, rep.user_role)
+                                                })
+                                            }}
+                                        >
+                                            <Ionicons name="star-outline" size={18} color="#f59e0b" />
+                                            <Text style={[styles.infoValue, { color: colors.text }]}>{rep.username}</Text>
                                         </TouchableOpacity>
                                     ))
                             )}
@@ -432,20 +482,48 @@ export default function GroupPage() {
                                 keyExtractor={(m) => m.user_id}
                                 style={styles.infoList}
                                 renderItem={({ item }) => (
-                                    <TouchableOpacity
-                                        style={[styles.infoMemberRow, { borderBottomColor: colors.border }]}
-                                        onPress={() => {
-                                            setInfoVisible(false)
-                                            openUserSheet({ user_id: item.user_id, username: item.username })
-                                        }}
-                                    >
-                                        <View style={[styles.memberAvatar, { backgroundColor: colors.primary + "22" }]}>
-                                            <Text style={[styles.memberInitial, { color: colors.primary }]}>
-                                                {item.username[0].toUpperCase()}
-                                            </Text>
-                                        </View>
-                                        <Text style={[styles.memberName, { color: colors.text }]}>{item.username}</Text>
-                                    </TouchableOpacity>
+                                    <View style={[styles.infoMemberRow, { borderBottomColor: colors.border }]}>
+                                        <TouchableOpacity
+                                            style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm, flex: 1 }}
+                                            onPress={() => {
+                                                setInfoVisible(false)
+                                                openUserSheet({ 
+                                                    user_id: item.user_id, 
+                                                    username: item.username,
+                                                    groupId: id,
+                                                    isCurrentUserAdmin: isAdmin,
+                                                    targetUserRoleInGroup: item.user_role,
+                                                    onRoleToggle: () => handleToggleClassRep(item.user_id, item.user_role)
+                                                })
+                                            }}
+                                        >
+                                            <View style={[styles.memberAvatar, { backgroundColor: colors.primary + "22" }]}>
+                                                <Text style={[styles.memberInitial, { color: colors.primary }]}>
+                                                    {item.username[0].toUpperCase()}
+                                                </Text>
+                                            </View>
+                                            <Text style={[styles.memberName, { color: colors.text }]}>{item.username}</Text>
+                                            {item.user_role === "CLASS_REP" && (
+                                                <Ionicons name="star" size={14} color="#f59e0b" />
+                                            )}
+                                        </TouchableOpacity>
+                                        {isAdmin && item.user_role !== "ADMIN" && (
+                                            <TouchableOpacity
+                                                onPress={() => handleToggleClassRep(item.user_id, item.user_role)}
+                                                hitSlop={8}
+                                                style={[styles.classRepBtn, {
+                                                    borderColor: item.user_role === "CLASS_REP" ? "#f59e0b" : colors.border,
+                                                    backgroundColor: item.user_role === "CLASS_REP" ? "#f59e0b" + "15" : "transparent",
+                                                }]}
+                                            >
+                                                <Ionicons
+                                                    name={item.user_role === "CLASS_REP" ? "star" : "star-outline"}
+                                                    size={14}
+                                                    color={item.user_role === "CLASS_REP" ? "#f59e0b" : colors.textSecondary}
+                                                />
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
                                 )}
                             />
                         </View>
@@ -835,5 +913,13 @@ const styles = StyleSheet.create({
         gap: Spacing.sm,
         paddingVertical: Spacing.sm,
         borderBottomWidth: 1,
+    },
+    classRepBtn: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        borderWidth: 1,
+        alignItems: "center",
+        justifyContent: "center",
     },
 })

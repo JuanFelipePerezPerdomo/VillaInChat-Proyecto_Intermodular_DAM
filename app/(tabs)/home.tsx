@@ -102,17 +102,17 @@ export default function Home() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Grupos</Text>
+        {isAdmin && (
+          <Button
+            title="Nuevo grupo"
+            onPress={() => router.push("/groups/newGroupPage" as any)}
+            size="small"
+          />
+        )}
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.pageHeader}>
-          <Text style={[styles.pageTitle, { color: colors.text }]}>Grupos</Text>
-          {isAdmin && (
-            <Button
-              title="Nuevo grupo"
-              onPress={() => router.push("/groups/newGroupPage" as any)}
-              size="small"
-            />
-          )}
-        </View>
         <GroupList
           title="Tus Grupos"
           groups={joinedGroups}
@@ -312,9 +312,15 @@ async function getJoinedGroups(userId: string): Promise<Group[]> {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  headerTitle: { fontSize: 22, fontWeight: "700" },
   scrollContainer: { flexGrow: 1, padding: 16, gap: 24, paddingBottom: 96 },
-  pageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  pageTitle: { fontSize: 22, fontWeight: "700" },
   mobileGroupTitleRow: {
     flexDirection: "row",
     alignItems: "center",
