@@ -269,15 +269,7 @@ export default function GroupPage() {
     const listItems: GroupListItem[] = (() => {
         const infoItem: GroupListItem = { kind: "info", id: "__group_info__" }
         const items = chats.map((chat) => ({ kind: "chat", chat }) as GroupListItem)
-        const announcementsIndex = items.findIndex(
-            (item) => item.kind === "chat" && item.chat.chat_type === "ANNOUNCEMENTS"
-        )
-        if (announcementsIndex >= 0) {
-            const next = [...items]
-            next.splice(announcementsIndex + 1, 0, infoItem)
-            return next
-        }
-        return [...items, infoItem]
+        return [infoItem, ...items]
     })()
 
     return (
