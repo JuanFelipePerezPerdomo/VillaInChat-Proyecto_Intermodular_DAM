@@ -1,5 +1,6 @@
 import { createGroup } from "@/src/actions";
 import { Button, Card, Input, LoadingSwap, UserSearchPicker } from "@/src/components/ui";
+import { useTheme } from "@/src/hooks";
 import { createGroupSchema } from "@/src/schemas/groupSchema";
 import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { UserSearchResult } from "@/src/services/searchUsers";
@@ -15,6 +16,7 @@ import { z } from "zod";
 type FormData = z.infer<typeof createGroupSchema>
 
 export default function NewGroupPage() {
+    const { isDark } = useTheme()
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
     const [selectedUsers, setSelectedUsers] = useState<UserSearchResult[]>([])
 
@@ -60,6 +62,9 @@ export default function NewGroupPage() {
                             render={({ field: { onChange, value } }) => (
                                 <Input
                                     label="Nombre del grupo"
+                                    labelColor={isDark ? undefined : "#000000"}
+                                    inputTextColor={isDark ? undefined : "#ffffff"}
+                                    placeholderTextColor={isDark ? undefined : "#000000"}
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Inserte un nombre"

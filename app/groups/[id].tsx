@@ -59,7 +59,7 @@ const SNAP = { duration: 260, easing: Easing.out(Easing.cubic) }
 
 export default function GroupPage() {
     const { id } = useLocalSearchParams<{ id: string }>()
-    const { colors } = useTheme()
+    const { colors, isDark } = useTheme()
     const { width: SCREEN_WIDTH } = useWindowDimensions()
     const { openUserSheet } = useUserSheet()
     const { lastChatId, updateLastChat } = useLastGroupChat(id)
@@ -402,7 +402,7 @@ export default function GroupPage() {
                             </TouchableOpacity>
                         </View>
 
-                        <View style={[styles.infoBlock, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                        <View style={[styles.infoBlock, { borderColor: colors.border }]}>
                             <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Administrador</Text>
                             {groupMembersInfo.filter(m => m.user_role === "ADMIN").length === 0 ? (
                                 <Text style={[styles.infoValue, { color: colors.text }]}>No definido</Text>
@@ -425,7 +425,7 @@ export default function GroupPage() {
                             )}
                         </View>
 
-                        <View style={[styles.infoBlock, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                        <View style={[styles.infoBlock, { borderColor: colors.border }]}>
                             <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Miembros del grupo</Text>
                             <FlatList
                                 data={groupMembersInfo}
@@ -491,6 +491,8 @@ export default function GroupPage() {
                         <Text style={[styles.modalTitle, { color: colors.text }]}>Nuevo chat</Text>
                         <Input
                             label="Nombre del chat"
+                            inputTextColor={isDark ? undefined : "#ffffff"}
+                            placeholderTextColor={isDark ? undefined : "#000000"}
                             value={newChatName}
                             onChangeText={setNewChatName}
                             placeholder="Ej: Debates, Recursos..."
@@ -510,7 +512,7 @@ export default function GroupPage() {
                                     onPress={() => setNewChatType(type)}
                                 >
                                     <Ionicons name={cfg.icon} size={20} color={selected ? cfg.color : colors.textSecondary} />
-                                    <Text style={[styles.typeName, { color: selected ? cfg.color : colors.text }]}>
+                                    <Text style={[styles.typeName, { color: selected ? cfg.color : "#ffffff" }]}>
                                         {cfg.label}
                                     </Text>
                                     {selected && (
