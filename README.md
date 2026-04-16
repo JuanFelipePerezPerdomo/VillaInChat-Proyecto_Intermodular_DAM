@@ -18,7 +18,7 @@
 
 <img src="./assets/images/splash-icon.png" align="right" width="200" alt="VillaInChat Splash">
 
-**VillaInChat** es una aplicación desarrollada con React Native y Expo, concebida como Proyecto Intermodular para el ciclo de Desarrollo de Aplicaciones Multiplataforma (DAM). Su objetivo principal es facilitar y centralizar la comunicación entre los residentes de una comunidad de vecinos, ofreciendo herramientas de mensajería en tiempo real y gestión administrativa.
+**VillaInChat** es una aplicación desarrollada con React Native y Expo, concebida como Proyecto Intermodular para el ciclo de Desarrollo de Aplicaciones Multiplataforma (DAM). Su objetivo principal es facilitar y centralizar la comunicación estudiantes y profesorado, ofreciendo herramientas de mensajería en tiempo real y gestión administrativa.
 
 ### ✨ Características Principales
 
