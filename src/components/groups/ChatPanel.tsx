@@ -38,11 +38,11 @@ export function ChatPanel({ chatId, chatName, onBack, groupMembers, chatType, us
     const { colors, isDark } = useTheme()
     const { openUserSheet } = useUserSheet()
 
-    const [messages, setMessages]       = useState<Message[]>([])
+    const [messages, setMessages] = useState<Message[]>([])
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-    const [newMessage, setNewMessage]   = useState("")
-    const [loading, setLoading]         = useState(true)
-    const [sending, setSending]         = useState(false)
+    const [newMessage, setNewMessage] = useState("")
+    const [loading, setLoading] = useState(true)
+    const [sending, setSending] = useState(false)
 
     // Reload messages whenever the chat changes
     useEffect(() => {
@@ -126,10 +126,7 @@ export function ChatPanel({ chatId, chatName, onBack, groupMembers, chatType, us
     }
 
     return (
-        <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <View style={{ flex: 1 }}>
             {/* Header */}
             <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
                 <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={8}>
@@ -232,7 +229,7 @@ export function ChatPanel({ chatId, chatName, onBack, groupMembers, chatType, us
                     </Text>
                 </View>
             )}
-        </KeyboardAvoidingView>
+        </View>
     )
 }
 
@@ -328,11 +325,11 @@ const styles = StyleSheet.create({
         padding: Spacing.lg,
         borderBottomWidth: 1,
     },
-    backBtn:      { padding: Spacing.xs },
-    chatName:     { ...Typography.h3, flex: 1 },
+    backBtn: { padding: Spacing.xs },
+    chatName: { ...Typography.h3, flex: 1 },
     messagesList: { padding: Spacing.lg, gap: Spacing.sm },
-    emptyMessages:{ flex: 1, alignItems: "center", marginTop: 40 },
-    emptyText:    { ...Typography.bodySmall },
+    emptyMessages: { flex: 1, alignItems: "center", marginTop: 40 },
+    emptyText: { ...Typography.bodySmall },
     inputRow: {
         flexDirection: "row",
         padding: Spacing.md,
@@ -381,26 +378,26 @@ const styles = StyleSheet.create({
         gap: Spacing.sm,
         paddingVertical: Spacing.xs,
     },
-    messageContent:     { flex: 1 },
+    messageContent: { flex: 1 },
     messageMeta: {
         flexDirection: "row",
         alignItems: "baseline",
         gap: Spacing.sm,
         marginBottom: 2,
     },
-    messageAuthor:      { fontSize: 14, fontWeight: "600" },
-    messageTime:        { fontSize: 11 },
-    messageText:        { fontSize: 14, lineHeight: 20 },
-    messageRowOwn:      { justifyContent: "flex-end" },
-    messageContentOwn:  { alignItems: "flex-end" },
-    messageMetaOwn:     { justifyContent: "flex-end" },
-    messageTextOwn:     { textAlign: "right" },
+    messageAuthor: { fontSize: 14, fontWeight: "600" },
+    messageTime: { fontSize: 11 },
+    messageText: { fontSize: 14, lineHeight: 20 },
+    messageRowOwn: { justifyContent: "flex-end" },
+    messageContentOwn: { alignItems: "flex-end" },
+    messageMetaOwn: { justifyContent: "flex-end" },
+    messageTextOwn: { textAlign: "right" },
     dateSeparator: {
         flexDirection: "row",
         alignItems: "center",
         marginVertical: Spacing.md,
         gap: Spacing.sm,
     },
-    dateLine:  { flex: 1, height: 1 },
+    dateLine: { flex: 1, height: 1 },
     dateLabel: { fontSize: 11, paddingHorizontal: Spacing.sm },
 })
