@@ -12,7 +12,7 @@ import { router, useLocalSearchParams } from "expo-router"
 import { useEffect, useState } from "react"
 import {
     ActivityIndicator, BackHandler, FlatList, Modal, StyleSheet,
-    Text, TouchableOpacity, useWindowDimensions, View,
+    Text, TouchableOpacity, useWindowDimensions, View, KeyboardAvoidingView, Platform
 } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
@@ -48,9 +48,9 @@ type GroupMemberInfo = {
 }
 
 const CHAT_TYPE_CONFIG: Record<ChatType, { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }> = {
-    PUBLIC:        { icon: "chatbubbles-outline",  label: "General", color: "#6366f1" },
-    PRIVATE:       { icon: "lock-closed-outline",  label: "Privado", color: "#6b7280" },
-    ANNOUNCEMENTS: { icon: "megaphone-outline",    label: "Avisos",  color: "#f59e0b" },
+    PUBLIC: { icon: "chatbubbles-outline", label: "General", color: "#6366f1" },
+    PRIVATE: { icon: "lock-closed-outline", label: "Privado", color: "#6b7280" },
+    ANNOUNCEMENTS: { icon: "megaphone-outline", label: "Avisos", color: "#f59e0b" },
 }
 
 const CHAT_TYPES: ChatType[] = ["PUBLIC", "PRIVATE", "ANNOUNCEMENTS"]
@@ -71,37 +71,37 @@ export default function GroupPage() {
     const startX = useSharedValue(0)
 
     // ── Estado del grupo ─────────────────────────────────────────────────────
-    const [group, setGroup]               = useState<GroupInfo | null>(null)
-    const [chats, setChats]               = useState<GroupChat[]>([])
-    const [groupMembers, setGroupMembers]       = useState<UserSearchResult[]>([])
+    const [group, setGroup] = useState<GroupInfo | null>(null)
+    const [chats, setChats] = useState<GroupChat[]>([])
+    const [groupMembers, setGroupMembers] = useState<UserSearchResult[]>([])
     const [allGroupMembers, setAllGroupMembers] = useState<UserSearchResult[]>([])
     const [groupMembersInfo, setGroupMembersInfo] = useState<GroupMemberInfo[]>([])
-    const [loading, setLoading]           = useState(true)
-    const [isAdmin, setIsAdmin]           = useState(false)
+    const [loading, setLoading] = useState(true)
+    const [isAdmin, setIsAdmin] = useState(false)
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
     const [infoVisible, setInfoVisible] = useState(false)
 
     // ── Chat activo (panel derecho) ──────────────────────────────────────────
-    const [activeChatId, setActiveChatId]     = useState<string | null>(null)
+    const [activeChatId, setActiveChatId] = useState<string | null>(null)
     const [activeChatName, setActiveChatName] = useState("")
 
     // ── Modal: crear chat ────────────────────────────────────────────────────
     const [createVisible, setCreateVisible] = useState(false)
-    const [newChatName, setNewChatName]     = useState("")
-    const [newChatType, setNewChatType]     = useState<ChatType>("PUBLIC")
-    const [creating, setCreating]           = useState(false)
+    const [newChatName, setNewChatName] = useState("")
+    const [newChatType, setNewChatType] = useState<ChatType>("PUBLIC")
+    const [creating, setCreating] = useState(false)
 
     // ── Modal: invitar usuario al grupo ──────────────────────────────────────
-    const [inviteVisible, setInviteVisible]   = useState(false)
+    const [inviteVisible, setInviteVisible] = useState(false)
     const [inviteSelected, setInviteSelected] = useState<UserSearchResult[]>([])
-    const [inviting, setInviting]             = useState(false)
+    const [inviting, setInviting] = useState(false)
 
     // ── Modal: añadir miembros a chat privado ────────────────────────────────
-    const [memberChatId, setMemberChatId]       = useState<string | null>(null)
+    const [memberChatId, setMemberChatId] = useState<string | null>(null)
     const [eligibleMembers, setEligibleMembers] = useState<UserSearchResult[]>([])
-    const [memberSearch, setMemberSearch]       = useState("")
-    const [addingId, setAddingId]               = useState<string | null>(null)
-    const [loadingMembers, setLoadingMembers]   = useState(false)
+    const [memberSearch, setMemberSearch] = useState("")
+    const [addingId, setAddingId] = useState<string | null>(null)
+    const [loadingMembers, setLoadingMembers] = useState(false)
 
     useEffect(() => { loadData() }, [id])
 
@@ -239,9 +239,9 @@ export default function GroupPage() {
         await loadData()
     }
 
-    function closeInviteModal()  { setInviteVisible(false); setInviteSelected([]) }
-    function closeMemberModal()  { setMemberChatId(null); setEligibleMembers([]); setMemberSearch("") }
-    function closeCreateModal()  { setCreateVisible(false); setNewChatName(""); setNewChatType("PUBLIC") }
+    function closeInviteModal() { setInviteVisible(false); setInviteSelected([]) }
+    function closeMemberModal() { setMemberChatId(null); setEligibleMembers([]); setMemberSearch("") }
+    function closeCreateModal() { setCreateVisible(false); setNewChatName(""); setNewChatType("PUBLIC") }
 
     async function handleToggleClassRep(userId: string, currentRole: string) {
         const newRole = currentRole === "CLASS_REP" ? "MEMBER" : "CLASS_REP"
@@ -282,10 +282,14 @@ export default function GroupPage() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-
-            {/* ─── Contenedor horizontal de dos paneles ─────────────────────── */}
-            {/* El overflow:hidden recorta el panel derecho cuando no está visible */}
-            <View style={styles.panelsWrapper}>
+            <KeyboardAvoidingView 
+                style={{ flex: 1 }} 
+                behavior={Platform.OS === "ios" ? "padding" : "height"} 
+                keyboardVerticalOffset={0}
+            >
+                {/* ─── Contenedor horizontal de dos paneles ─────────────────────── */}
+                {/* El overflow:hidden recorta el panel derecho cuando no está visible */}
+                <View style={styles.panelsWrapper}>
                 <GestureDetector gesture={panGesture}>
                     <Animated.View
                         style={[
@@ -401,6 +405,7 @@ export default function GroupPage() {
                     </Animated.View>
                 </GestureDetector>
             </View>
+            </KeyboardAvoidingView>
 
             {/* ─── Modales ──────────────────────────────────────────────────── */}
 
@@ -428,8 +433,8 @@ export default function GroupPage() {
                                             style={styles.infoMemberRow}
                                             onPress={() => {
                                                 setInfoVisible(false)
-                                                openUserSheet({ 
-                                                    user_id: admin.user_id, 
+                                                openUserSheet({
+                                                    user_id: admin.user_id,
                                                     username: admin.username,
                                                     groupId: id,
                                                     isCurrentUserAdmin: isAdmin,
@@ -458,8 +463,8 @@ export default function GroupPage() {
                                             style={styles.infoMemberRow}
                                             onPress={() => {
                                                 setInfoVisible(false)
-                                                openUserSheet({ 
-                                                    user_id: rep.user_id, 
+                                                openUserSheet({
+                                                    user_id: rep.user_id,
                                                     username: rep.username,
                                                     groupId: id,
                                                     isCurrentUserAdmin: isAdmin,
@@ -487,8 +492,8 @@ export default function GroupPage() {
                                             style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm, flex: 1 }}
                                             onPress={() => {
                                                 setInfoVisible(false)
-                                                openUserSheet({ 
-                                                    user_id: item.user_id, 
+                                                openUserSheet({
+                                                    user_id: item.user_id,
                                                     username: item.username,
                                                     groupId: id,
                                                     isCurrentUserAdmin: isAdmin,
@@ -791,13 +796,13 @@ async function getEligibleMembers(groupId: string, chatId: string): Promise<User
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-    center:    { flex: 1, justifyContent: "center", alignItems: "center" },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
     container: { flex: 1 },
 
     // Dos paneles horizontales
     panelsWrapper: { flex: 1, overflow: "hidden" },
-    panelsRow:     { flexDirection: "row", flex: 1 },
-    panel:         { flex: 1 },  // height fills via alignItems: stretch
+    panelsRow: { flexDirection: "row", flex: 1 },
+    panel: { flex: 1 },  // height fills via alignItems: stretch
 
     // Panel izquierdo: header
     header: {
@@ -809,7 +814,7 @@ const styles = StyleSheet.create({
         zIndex: 100,
         overflow: "visible",
     },
-    backBtn:   { padding: Spacing.xs },
+    backBtn: { padding: Spacing.xs },
     headerBtn: { padding: 4 },
     groupName: { ...Typography.h3, flex: 1 },
 
@@ -827,12 +832,12 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     iconContainer: { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center" },
-    cardContent:   { flex: 1, gap: Spacing.xs },
-    chatName:      { ...Typography.body, fontWeight: "600" },
-    chatType:      { ...Typography.caption },
-    manageBtn:     { padding: 4 },
-    empty:         { alignItems: "center", marginTop: 60, gap: Spacing.md },
-    emptyText:     { ...Typography.bodySmall },
+    cardContent: { flex: 1, gap: Spacing.xs },
+    chatName: { ...Typography.body, fontWeight: "600" },
+    chatType: { ...Typography.caption },
+    manageBtn: { padding: 4 },
+    empty: { alignItems: "center", marginTop: 60, gap: Spacing.md },
+    emptyText: { ...Typography.bodySmall },
     createCard: {
         flexDirection: "row",
         alignItems: "center",
@@ -862,15 +867,15 @@ const styles = StyleSheet.create({
     },
 
     // Panel derecho vacío
-    noChat:     { flex: 1, justifyContent: "center", alignItems: "center", gap: Spacing.md },
+    noChat: { flex: 1, justifyContent: "center", alignItems: "center", gap: Spacing.md },
     noChatText: { ...Typography.bodySmall },
 
     // Modales
     overlay: { flex: 1, backgroundColor: "#00000066", justifyContent: "center", padding: Spacing.xl },
-    modal:   { borderRadius: BorderRadius.xl, padding: Spacing.xl, gap: Spacing.md },
-    modalTitle:   { ...Typography.h3, fontWeight: "700" },
+    modal: { borderRadius: BorderRadius.xl, padding: Spacing.xl, gap: Spacing.md },
+    modalTitle: { ...Typography.h3, fontWeight: "700" },
     modalActions: { flexDirection: "row", gap: Spacing.sm, marginTop: Spacing.xs },
-    typeLabel:  { ...Typography.caption, marginBottom: -Spacing.xs },
+    typeLabel: { ...Typography.caption, marginBottom: -Spacing.xs },
     typeOption: {
         flexDirection: "row",
         alignItems: "center",
@@ -879,9 +884,9 @@ const styles = StyleSheet.create({
         borderRadius: BorderRadius.md,
         padding: Spacing.sm,
     },
-    typeName:     { fontSize: 14, fontWeight: "600" },
+    typeName: { fontSize: 14, fontWeight: "600" },
     memberHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-    memberList:   { maxHeight: 220 },
+    memberList: { maxHeight: 220 },
     memberRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -889,10 +894,10 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.sm,
         borderBottomWidth: 1,
     },
-    memberAvatar:  { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center" },
+    memberAvatar: { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center" },
     memberInitial: { fontSize: 14, fontWeight: "700" },
-    memberName:    { flex: 1, fontSize: 14 },
-    noMembers:     { fontSize: 13, textAlign: "center", paddingVertical: Spacing.lg },
+    memberName: { flex: 1, fontSize: 14 },
+    noMembers: { fontSize: 13, textAlign: "center", paddingVertical: Spacing.lg },
     infoBlock: {
         borderWidth: 1,
         borderRadius: BorderRadius.lg,
