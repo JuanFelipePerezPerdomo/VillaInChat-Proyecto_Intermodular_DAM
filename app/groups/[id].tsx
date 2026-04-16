@@ -516,11 +516,13 @@ export default function GroupPage() {
                                                     backgroundColor: item.user_role === "CLASS_REP" ? "#f59e0b" + "15" : "transparent",
                                                 }]}
                                             >
-                                                <Ionicons
-                                                    name={item.user_role === "CLASS_REP" ? "star" : "star-outline"}
-                                                    size={14}
-                                                    color={item.user_role === "CLASS_REP" ? "#f59e0b" : colors.textSecondary}
-                                                />
+                                                <Tooltip text={item.user_role === "CLASS_REP" ? "Quitar Delegado": "Asignar Delegado"}>
+                                                    <Ionicons
+                                                        name={item.user_role === "CLASS_REP" ? "star" : "star-outline"}
+                                                        size={14}
+                                                        color={item.user_role === "CLASS_REP" ? "#f59e0b" : colors.textSecondary}
+                                                    />
+                                                </Tooltip>
                                             </TouchableOpacity>
                                         )}
                                     </View>
