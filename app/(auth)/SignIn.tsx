@@ -95,6 +95,8 @@ export default function SignIn() {
                                 <Input
                                     label="Correo Electronico"
                                     labelColor={isDark ? "#5f547d" : WEB_SOFT_TEXT}
+                                    inputTextColor={isDark ? undefined : "#ffffff"}
+                                    placeholderTextColor={isDark ? undefined : "#000000"}
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Inserte su correo"
@@ -116,6 +118,8 @@ export default function SignIn() {
                                     ref={passwordRef}
                                     label="Contraseña"
                                     labelColor={isDark ? "#5f547d" : WEB_SOFT_TEXT}
+                                    inputTextColor={isDark ? undefined : "#ffffff"}
+                                    placeholderTextColor={isDark ? undefined : "#000000"}
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Inserte su contraseña"
@@ -204,7 +208,7 @@ const styles = StyleSheet.create({
         width: 410,
         justifyContent: "center",
         padding: Spacing.xl,
-        backgroundColor: "#f8f5ff",
+        backgroundColor: "#c2e0e0",
     },
     headerSection: {
         alignItems: 'center',

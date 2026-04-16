@@ -13,6 +13,7 @@ import {
 interface InputProps extends Omit<TextInputProps, "style">{
     label?: string,
     labelColor?: string,
+    inputTextColor?: string,
     error?: string,
     hint?: string,
     showCharCount?: boolean,
@@ -23,6 +24,7 @@ interface InputProps extends Omit<TextInputProps, "style">{
 export const Input = forwardRef<TextInput, InputProps>(function Input({
     label,
     labelColor,
+    inputTextColor,
     error,
     hint,
     showCharCount = false,
@@ -56,13 +58,13 @@ export const Input = forwardRef<TextInput, InputProps>(function Input({
         maxLength={maxLength}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        placeholderTextColor={colors.placeholder}
+        placeholderTextColor={textInputProps.placeholderTextColor ?? colors.placeholder}
         style={[
           styles.input,
           {
             backgroundColor: colors.surface,
             borderColor: getBorderColor(),
-            color: colors.text,
+            color: inputTextColor ?? colors.text,
           },
         ]}
         {...textInputProps}

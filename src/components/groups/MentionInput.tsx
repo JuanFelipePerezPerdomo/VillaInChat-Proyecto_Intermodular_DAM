@@ -142,6 +142,12 @@ export function MentionInput({
                 multiline
                 maxLength={maxLength}
                 onSubmitEditing={onSubmitEditing}
+                onKeyPress={({ nativeEvent }) => {
+                    if (nativeEvent.key === "Enter" && !(nativeEvent as any).shiftKey) {
+                        (nativeEvent as any).preventDefault?.()
+                        onSubmitEditing?.()
+                    }
+                }}
             />
         </View>
     )

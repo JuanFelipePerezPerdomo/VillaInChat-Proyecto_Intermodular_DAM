@@ -15,7 +15,7 @@ type Props = {
 }
 
 export function UserSearchPicker({ excludeId, selectedUsers, onAdd, onRemove, filterUserIds }: Props) {
-    const { colors } = useTheme()
+    const { colors, isDark } = useTheme()
     const { query, setQuery, results, loading, clearSearch } = useUserSearch(excludeId)
 
     const filteredResults = results.filter(
@@ -53,8 +53,8 @@ export function UserSearchPicker({ excludeId, selectedUsers, onAdd, onRemove, fi
                     value={query}
                     onChangeText={setQuery}
                     placeholder="Buscar por nombre de usuario..."
-                    placeholderTextColor={colors.placeholder}
-                    style={[styles.input, { color: colors.text }]}
+                    placeholderTextColor={isDark ? colors.placeholder : "#000000"}
+                    style={[styles.input, { color: isDark ? colors.text : "#ffffff" }]}
                     autoCapitalize="none"
                     autoCorrect={false}
                 />

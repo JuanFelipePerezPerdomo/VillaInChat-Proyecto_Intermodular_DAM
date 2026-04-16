@@ -49,9 +49,6 @@ export default function Settings() {
                 setGrade(data.grade ?? "");
                 setDraftGrade(data.grade ?? "");
             }
-
-            const mentionsTeachersOnlyValue = await AsyncStorage.getItem(MENTIONS_TEACHERS_ONLY_KEY);
-            setMentionsTeachersOnly(mentionsTeachersOnlyValue === "true");
         }
         loadSettingsData();
     }, []);
