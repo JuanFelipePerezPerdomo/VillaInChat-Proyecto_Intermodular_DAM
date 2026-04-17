@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/images/icon.png" alt="VillaInChat Logo" width="150" />
+  <img src="./assets/images/favicon_vic.png" alt="VillaInChat Logo" width="150" />
   <h1 align="center">VillaInChat</h1>
 </p>
 
