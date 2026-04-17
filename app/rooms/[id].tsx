@@ -141,7 +141,7 @@ export default function RoomPage() {
     }
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={["top"]}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
             <KeyboardAvoidingView
                 style={styles.flex}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -205,8 +205,10 @@ export default function RoomPage() {
                         placeholderTextColor={isDark ? colors.placeholder : "#000000"}
                         multiline
                         maxLength={500}
-                        onKeyPress={({ nativeEvent }) => {
-                            if (nativeEvent.key === "Enter" && !(nativeEvent as any).shiftKey) {
+                        onKeyPress={(e) => {
+                            const native = e.nativeEvent as any
+                            if (native.key === "Enter" && !native.shiftKey) {
+                                native.preventDefault?.()
                                 handleSend()
                             }
                         }}

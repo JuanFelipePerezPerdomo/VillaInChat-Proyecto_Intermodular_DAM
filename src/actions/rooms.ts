@@ -52,46 +52,15 @@ export async function createGroup(
     const { success, data } = createGroupSchema.safeParse(unsafeData)
     if (!success) return { error: true, message: "Nombre de grupo inválido" }
 
-    const user = await getCurrentUser()
-    if (!user) return { error: true, message: "Usuario no autenticado" }
+    const uniqueMembers = [...new Set(memberIds)]
 
-    const { data: group, error: groupError } = await supabase
-        .from("group_room")
-        .insert({ group_name: data.name })
-        .select("group_id")
-        .single()
+    const { data: groupId, error } = await supabase
+        .rpc("create_group", {
+            p_name:       data.name,
+            p_member_ids: uniqueMembers,
+        })
 
-    if (groupError || !group) return { error: true, message: "Error al crear el grupo" }
-
-    const groupId = group.group_id
-    const allMemberIds = [...new Set([...memberIds])] // excluye duplicados de invited
-
-    const [chatsResult] = await Promise.all([
-        supabase.from("chat_room").insert([
-            { name: "General", chat_type: "PUBLIC",        FK_group_id: groupId },
-            { name: "Avisos",  chat_type: "ANNOUNCEMENTS", FK_group_id: groupId },
-        ]).select("chat_id"),
-        // Insertar creador como ADMIN + miembros invitados como MEMBER
-        supabase.from("group_members").insert([
-            { FK_group_id: groupId, FK_user_id: user.id, user_role: "ADMIN" },
-            ...allMemberIds.map((id) => ({ FK_group_id: groupId, FK_user_id: id, user_role: "MEMBER" as const })),
-        ]),
-    ])
-
-    if (chatsResult.error || !chatsResult.data) return { error: true, message: "Error al crear los chats del grupo" }
-
-    const chatIds = chatsResult.data.map((c) => c.chat_id)
-    const allUserIds = [user.id, ...allMemberIds]
-
-    const chatMemberInserts = allUserIds.flatMap((userId) =>
-        chatIds.map((chatId) => ({ FK_chat_id: chatId, FK_user_id: userId }))
-    )
-
-    const { error: chatMemberError } = await supabase
-        .from("chat_members")
-        .insert(chatMemberInserts)
-
-    if (chatMemberError) return { error: true, message: "Error al suscribir miembros a los chats" }
+    if (error || !groupId) return { error: true, message: "Error al crear el grupo" }
 
     return { error: false, groupId }
 }
@@ -147,35 +116,13 @@ export async function createDM(receiverId: string, initialMessage: string) {
         if (existing) return { error: false, chatId: existing.FK_chat_id }
     }
 
-    const { data: room, error: roomError } = await supabase
-        .from("chat_room")
-        .insert({ chat_type: "PRIVATE" })
-        .select("chat_id")
-        .single()
-
-    if (roomError || !room) return { error: true, message: "Error al crear el chat" }
-
-    const chatId = room.chat_id
-
-    const { error: memberError } = await supabase
-        .from("chat_members")
-        .insert([
-            { FK_chat_id: chatId, FK_user_id: user.id },
-            { FK_chat_id: chatId, FK_user_id: receiverId },
-        ])
-
-    if (memberError) return { error: true, message: "Error al añadir miembros" }
-
-    const { error: msgError } = await supabase
-        .from("messages")
-        .insert({
-            content: initialMessage.trim(),
-            FK_chat_id: chatId,
-            FK_author_id: user.id,
-            read: false,
+    const { data: chatId, error: rpcError } = await supabase
+        .rpc("create_dm", {
+            p_receiver_id: receiverId,
+            p_message: initialMessage.trim(),
         })
 
-    if (msgError) return { error: true, message: "Error al enviar el mensaje inicial" }
+    if (rpcError || !chatId) return { error: true, message: "Error al crear el chat" }
 
     return { error: false, chatId }
 }
@@ -185,38 +132,16 @@ export async function createGroupChat(
     name: string,
     chatType: "PRIVATE" | "PUBLIC" | "ANNOUNCEMENTS"
 ) {
-    const user = await getCurrentUser()
-    if (!user) return { error: true, message: "No autenticado" }
+    const { data: chatId, error } = await supabase
+        .rpc("create_group_chat", {
+            p_group_id:  groupId,
+            p_name:      name,
+            p_chat_type: chatType,
+        })
 
-    const { data: room, error: roomError } = await supabase
-        .from("chat_room")
-        .insert({ name, chat_type: chatType, FK_group_id: groupId })
-        .select("chat_id")
-        .single()
+    if (error || !chatId) return { error: true, message: "Error al crear el chat" }
 
-    if (roomError || !room) return { error: true, message: "Error al crear el chat" }
-
-    // El creador siempre entra al chat
-    await supabase
-        .from("chat_members")
-        .insert({ FK_chat_id: room.chat_id, FK_user_id: user.id })
-
-    // Si es público o avisos, suscribir a todos los miembros del grupo
-    if (chatType !== "PRIVATE") {
-        const { data: members } = await supabase
-            .from("group_members")
-            .select("FK_user_id")
-            .eq("FK_group_id", groupId)
-            .neq("FK_user_id", user.id)
-
-        if (members && members.length > 0) {
-            await supabase
-                .from("chat_members")
-                .insert(members.map(m => ({ FK_chat_id: room.chat_id, FK_user_id: m.FK_user_id })))
-        }
-    }
-
-    return { error: false, chatId: room.chat_id }
+    return { error: false, chatId }
 }
 
 export async function addChatMember(chatId: string, userId: string) {

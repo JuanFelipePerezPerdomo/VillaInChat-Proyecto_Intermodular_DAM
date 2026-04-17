@@ -1,6 +1,7 @@
 import { addChatMember, createGroupChat, inviteUserToGroup } from "@/src/actions"
 import { ChatPanel, GroupMemberSearch } from "@/src/components/groups"
-import { Button, Input, Tooltip, UserSearchPicker } from "@/src/components/ui"
+import { Button, ContextMenu, Input, Tooltip, UserSearchPicker } from "@/src/components/ui"
+import type { ContextMenuItem } from "@/src/components/ui"
 import { useLastGroupChat, useTheme } from "@/src/hooks"
 import { supabase } from "@/src/lib/supabase"
 import { useUserSheet } from "@/src/providers/UserSheetProvider"
@@ -12,7 +13,7 @@ import { router, useLocalSearchParams } from "expo-router"
 import { useEffect, useState } from "react"
 import {
     ActivityIndicator, BackHandler, FlatList, Modal, StyleSheet,
-    Text, TouchableOpacity, useWindowDimensions, View,
+    Text, TouchableOpacity, useWindowDimensions, View, KeyboardAvoidingView, Platform
 } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
@@ -48,9 +49,9 @@ type GroupMemberInfo = {
 }
 
 const CHAT_TYPE_CONFIG: Record<ChatType, { icon: keyof typeof Ionicons.glyphMap; label: string; color: string }> = {
-    PUBLIC:        { icon: "chatbubbles-outline",  label: "General", color: "#6366f1" },
-    PRIVATE:       { icon: "lock-closed-outline",  label: "Privado", color: "#6b7280" },
-    ANNOUNCEMENTS: { icon: "megaphone-outline",    label: "Avisos",  color: "#f59e0b" },
+    PUBLIC: { icon: "chatbubbles-outline", label: "General", color: "#6366f1" },
+    PRIVATE: { icon: "lock-closed-outline", label: "Privado", color: "#6b7280" },
+    ANNOUNCEMENTS: { icon: "megaphone-outline", label: "Avisos", color: "#f59e0b" },
 }
 
 const CHAT_TYPES: ChatType[] = ["PUBLIC", "PRIVATE", "ANNOUNCEMENTS"]
@@ -59,7 +60,7 @@ const SNAP = { duration: 260, easing: Easing.out(Easing.cubic) }
 
 export default function GroupPage() {
     const { id } = useLocalSearchParams<{ id: string }>()
-    const { colors } = useTheme()
+    const { colors, isDark } = useTheme()
     const { width: SCREEN_WIDTH } = useWindowDimensions()
     const { openUserSheet } = useUserSheet()
     const { lastChatId, updateLastChat } = useLastGroupChat(id)
@@ -71,37 +72,43 @@ export default function GroupPage() {
     const startX = useSharedValue(0)
 
     // ── Estado del grupo ─────────────────────────────────────────────────────
-    const [group, setGroup]               = useState<GroupInfo | null>(null)
-    const [chats, setChats]               = useState<GroupChat[]>([])
-    const [groupMembers, setGroupMembers]       = useState<UserSearchResult[]>([])
+    const [group, setGroup] = useState<GroupInfo | null>(null)
+    const [chats, setChats] = useState<GroupChat[]>([])
+    const [groupMembers, setGroupMembers] = useState<UserSearchResult[]>([])
     const [allGroupMembers, setAllGroupMembers] = useState<UserSearchResult[]>([])
     const [groupMembersInfo, setGroupMembersInfo] = useState<GroupMemberInfo[]>([])
-    const [loading, setLoading]           = useState(true)
-    const [isAdmin, setIsAdmin]           = useState(false)
+    const [loading, setLoading] = useState(true)
+    const [isAdmin, setIsAdmin] = useState(false)
     const [currentUserId, setCurrentUserId] = useState<string | null>(null)
     const [infoVisible, setInfoVisible] = useState(false)
 
     // ── Chat activo (panel derecho) ──────────────────────────────────────────
-    const [activeChatId, setActiveChatId]     = useState<string | null>(null)
+    const [activeChatId, setActiveChatId] = useState<string | null>(null)
     const [activeChatName, setActiveChatName] = useState("")
 
     // ── Modal: crear chat ────────────────────────────────────────────────────
     const [createVisible, setCreateVisible] = useState(false)
-    const [newChatName, setNewChatName]     = useState("")
-    const [newChatType, setNewChatType]     = useState<ChatType>("PUBLIC")
-    const [creating, setCreating]           = useState(false)
+    const [newChatName, setNewChatName] = useState("")
+    const [newChatType, setNewChatType] = useState<ChatType>("PUBLIC")
+    const [creating, setCreating] = useState(false)
 
     // ── Modal: invitar usuario al grupo ──────────────────────────────────────
-    const [inviteVisible, setInviteVisible]   = useState(false)
+    const [inviteVisible, setInviteVisible] = useState(false)
     const [inviteSelected, setInviteSelected] = useState<UserSearchResult[]>([])
-    const [inviting, setInviting]             = useState(false)
+    const [inviting, setInviting] = useState(false)
 
     // ── Modal: añadir miembros a chat privado ────────────────────────────────
-    const [memberChatId, setMemberChatId]       = useState<string | null>(null)
+    const [memberChatId, setMemberChatId] = useState<string | null>(null)
     const [eligibleMembers, setEligibleMembers] = useState<UserSearchResult[]>([])
-    const [memberSearch, setMemberSearch]       = useState("")
-    const [addingId, setAddingId]               = useState<string | null>(null)
-    const [loadingMembers, setLoadingMembers]   = useState(false)
+    const [memberSearch, setMemberSearch] = useState("")
+    const [addingId, setAddingId] = useState<string | null>(null)
+    const [loadingMembers, setLoadingMembers] = useState(false)
+
+    // ── Menú de opciones de chat (⋮) ─────────────────────────────────────────
+    const [renameVisible, setRenameVisible] = useState(false)
+    const [renameChatId, setRenameChatId] = useState<string | null>(null)
+    const [renameValue, setRenameValue] = useState("")
+    const [renaming, setRenaming] = useState(false)
 
     useEffect(() => { loadData() }, [id])
 
@@ -156,6 +163,27 @@ export default function GroupPage() {
     async function reloadChats() {
         if (!currentUserId) return
         setChats(await getGroupChats(id, currentUserId))
+    }
+
+    async function handleRenameChat() {
+        if (!renameChatId || !renameValue.trim()) return
+        setRenaming(true)
+        await supabase.from("chat_room").update({ name: renameValue.trim() }).eq("chat_id", renameChatId)
+        setRenaming(false)
+        setRenameVisible(false)
+        setRenameChatId(null)
+        setRenameValue("")
+        reloadChats()
+    }
+
+    async function handleDeleteChat(chatId: string) {
+        await supabase.from("chat_room").delete().eq("chat_id", chatId)
+        if (activeChatId === chatId) {
+            setActiveChatId(null)
+            setActiveChatName("")
+            panelX.value = withTiming(0, SNAP)
+        }
+        reloadChats()
     }
 
     // ── Navegación entre paneles ─────────────────────────────────────────────
@@ -239,9 +267,20 @@ export default function GroupPage() {
         await loadData()
     }
 
-    function closeInviteModal()  { setInviteVisible(false); setInviteSelected([]) }
-    function closeMemberModal()  { setMemberChatId(null); setEligibleMembers([]); setMemberSearch("") }
-    function closeCreateModal()  { setCreateVisible(false); setNewChatName(""); setNewChatType("PUBLIC") }
+    function closeInviteModal() { setInviteVisible(false); setInviteSelected([]) }
+    function closeMemberModal() { setMemberChatId(null); setEligibleMembers([]); setMemberSearch("") }
+    function closeCreateModal() { setCreateVisible(false); setNewChatName(""); setNewChatType("PUBLIC") }
+
+    async function handleToggleClassRep(userId: string, currentRole: string) {
+        const newRole = currentRole === "CLASS_REP" ? "MEMBER" : "CLASS_REP"
+        await supabase
+            .from("group_members")
+            .update({ user_role: newRole })
+            .eq("FK_group_id", id)
+            .eq("FK_user_id", userId)
+        // Refresh member info
+        setGroupMembersInfo(await getGroupMembersWithRole(id))
+    }
 
     if (loading) {
         return (
@@ -258,23 +297,19 @@ export default function GroupPage() {
     const listItems: GroupListItem[] = (() => {
         const infoItem: GroupListItem = { kind: "info", id: "__group_info__" }
         const items = chats.map((chat) => ({ kind: "chat", chat }) as GroupListItem)
-        const announcementsIndex = items.findIndex(
-            (item) => item.kind === "chat" && item.chat.chat_type === "ANNOUNCEMENTS"
-        )
-        if (announcementsIndex >= 0) {
-            const next = [...items]
-            next.splice(announcementsIndex + 1, 0, infoItem)
-            return next
-        }
-        return [...items, infoItem]
+        return [infoItem, ...items]
     })()
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-
-            {/* ─── Contenedor horizontal de dos paneles ─────────────────────── */}
-            {/* El overflow:hidden recorta el panel derecho cuando no está visible */}
-            <View style={styles.panelsWrapper}>
+            <KeyboardAvoidingView 
+                style={{ flex: 1 }} 
+                behavior={Platform.OS === "ios" ? "padding" : "height"} 
+                keyboardVerticalOffset={0}
+            >
+                {/* ─── Contenedor horizontal de dos paneles ─────────────────────── */}
+                {/* El overflow:hidden recorta el panel derecho cuando no está visible */}
+                <View style={styles.panelsWrapper}>
                 <GestureDetector gesture={panGesture}>
                     <Animated.View
                         style={[
@@ -322,6 +357,12 @@ export default function GroupPage() {
                                             isActive={item.chat.chat_id === activeChatId}
                                             onPress={() => goToChat(item.chat.chat_id, item.chat.name)}
                                             onManageMembers={() => openMemberSearch(item.chat.chat_id)}
+                                            onRename={() => {
+                                                setRenameChatId(item.chat.chat_id)
+                                                setRenameValue(item.chat.name)
+                                                setRenameVisible(true)
+                                            }}
+                                            onDelete={() => handleDeleteChat(item.chat.chat_id)}
                                         />
                                     ) : (
                                         <TouchableOpacity
@@ -375,10 +416,12 @@ export default function GroupPage() {
                                     chatName={activeChatName}
                                     onBack={goToChannels}
                                     groupMembers={allGroupMembers}
+                                    chatType={chats.find(c => c.chat_id === activeChatId)?.chat_type}
+                                    userGroupRole={group?.userRole}
                                 />
                             ) : (
                                 <View style={styles.noChat}>
-                                    <Ionicons name="chatbubble-ellipses-outline" size={52} color={colors.border} />
+                                    <Ionicons name="chatbubble-ellipses-outline" size={52} color="#2d6a4f" />
                                     <Text style={[styles.noChatText, { color: colors.textTertiary }]}>
                                         Selecciona un chat
                                     </Text>
@@ -388,8 +431,39 @@ export default function GroupPage() {
                     </Animated.View>
                 </GestureDetector>
             </View>
+            </KeyboardAvoidingView>
 
             {/* ─── Modales ──────────────────────────────────────────────────── */}
+
+            {/* Modal renombrar chat */}
+            <Modal
+                visible={renameVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setRenameVisible(false)}
+            >
+                <View style={styles.overlay}>
+                    <View style={[styles.modal, { backgroundColor: colors.card }]}>
+                        <View style={styles.memberHeader}>
+                            <Text style={[styles.modalTitle, { color: colors.text }]}>Editar nombre</Text>
+                            <TouchableOpacity onPress={() => setRenameVisible(false)} hitSlop={8}>
+                                <Ionicons name="close" size={22} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+                        <Input
+                            label="Nombre del chat"
+                            value={renameValue}
+                            onChangeText={setRenameValue}
+                            placeholder="Nuevo nombre..."
+                        />
+                        <Button
+                            title={renaming ? "Guardando…" : "Guardar"}
+                            onPress={handleRenameChat}
+                            disabled={renaming || !renameValue.trim()}
+                        />
+                    </View>
+                </View>
+            </Modal>
 
             {/* Mas informacion del grupo */}
             <Modal visible={infoVisible} transparent animationType="fade" onRequestClose={() => setInfoVisible(false)}>
@@ -402,7 +476,7 @@ export default function GroupPage() {
                             </TouchableOpacity>
                         </View>
 
-                        <View style={[styles.infoBlock, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                        <View style={[styles.infoBlock, { borderColor: colors.border }]}>
                             <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Administrador</Text>
                             {groupMembersInfo.filter(m => m.user_role === "ADMIN").length === 0 ? (
                                 <Text style={[styles.infoValue, { color: colors.text }]}>No definido</Text>
@@ -415,7 +489,14 @@ export default function GroupPage() {
                                             style={styles.infoMemberRow}
                                             onPress={() => {
                                                 setInfoVisible(false)
-                                                openUserSheet({ user_id: admin.user_id, username: admin.username })
+                                                openUserSheet({
+                                                    user_id: admin.user_id,
+                                                    username: admin.username,
+                                                    groupId: id,
+                                                    isCurrentUserAdmin: isAdmin,
+                                                    targetUserRoleInGroup: admin.user_role,
+                                                    onRoleToggle: () => handleToggleClassRep(admin.user_id, admin.user_role)
+                                                })
                                             }}
                                         >
                                             <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
@@ -425,27 +506,87 @@ export default function GroupPage() {
                             )}
                         </View>
 
-                        <View style={[styles.infoBlock, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                        <View style={[styles.infoBlock, { borderColor: colors.border }]}>
+                            <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Delegados de clase</Text>
+                            {groupMembersInfo.filter(m => m.user_role === "CLASS_REP").length === 0 ? (
+                                <Text style={[styles.infoValue, { color: colors.text }]}>Sin delegados asignados</Text>
+                            ) : (
+                                groupMembersInfo
+                                    .filter(m => m.user_role === "CLASS_REP")
+                                    .map((rep) => (
+                                        <TouchableOpacity
+                                            key={rep.user_id}
+                                            style={styles.infoMemberRow}
+                                            onPress={() => {
+                                                setInfoVisible(false)
+                                                openUserSheet({
+                                                    user_id: rep.user_id,
+                                                    username: rep.username,
+                                                    groupId: id,
+                                                    isCurrentUserAdmin: isAdmin,
+                                                    targetUserRoleInGroup: rep.user_role,
+                                                    onRoleToggle: () => handleToggleClassRep(rep.user_id, rep.user_role)
+                                                })
+                                            }}
+                                        >
+                                            <Ionicons name="star-outline" size={18} color="#f59e0b" />
+                                            <Text style={[styles.infoValue, { color: colors.text }]}>{rep.username}</Text>
+                                        </TouchableOpacity>
+                                    ))
+                            )}
+                        </View>
+
+                        <View style={[styles.infoBlock, { borderColor: colors.border }]}>
                             <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Miembros del grupo</Text>
                             <FlatList
                                 data={groupMembersInfo}
                                 keyExtractor={(m) => m.user_id}
                                 style={styles.infoList}
                                 renderItem={({ item }) => (
-                                    <TouchableOpacity
-                                        style={[styles.infoMemberRow, { borderBottomColor: colors.border }]}
-                                        onPress={() => {
-                                            setInfoVisible(false)
-                                            openUserSheet({ user_id: item.user_id, username: item.username })
-                                        }}
-                                    >
-                                        <View style={[styles.memberAvatar, { backgroundColor: colors.primary + "22" }]}>
-                                            <Text style={[styles.memberInitial, { color: colors.primary }]}>
-                                                {item.username[0].toUpperCase()}
-                                            </Text>
-                                        </View>
-                                        <Text style={[styles.memberName, { color: colors.text }]}>{item.username}</Text>
-                                    </TouchableOpacity>
+                                    <View style={[styles.infoMemberRow, { borderBottomColor: colors.border }]}>
+                                        <TouchableOpacity
+                                            style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm, flex: 1 }}
+                                            onPress={() => {
+                                                setInfoVisible(false)
+                                                openUserSheet({
+                                                    user_id: item.user_id,
+                                                    username: item.username,
+                                                    groupId: id,
+                                                    isCurrentUserAdmin: isAdmin,
+                                                    targetUserRoleInGroup: item.user_role,
+                                                    onRoleToggle: () => handleToggleClassRep(item.user_id, item.user_role)
+                                                })
+                                            }}
+                                        >
+                                            <View style={[styles.memberAvatar, { backgroundColor: colors.primary + "22" }]}>
+                                                <Text style={[styles.memberInitial, { color: colors.primary }]}>
+                                                    {item.username[0].toUpperCase()}
+                                                </Text>
+                                            </View>
+                                            <Text style={[styles.memberName, { color: colors.text }]}>{item.username}</Text>
+                                            {item.user_role === "CLASS_REP" && (
+                                                <Ionicons name="star" size={14} color="#f59e0b" />
+                                            )}
+                                        </TouchableOpacity>
+                                        {isAdmin && item.user_role !== "ADMIN" && (
+                                            <TouchableOpacity
+                                                onPress={() => handleToggleClassRep(item.user_id, item.user_role)}
+                                                hitSlop={8}
+                                                style={[styles.classRepBtn, {
+                                                    borderColor: item.user_role === "CLASS_REP" ? "#f59e0b" : colors.border,
+                                                    backgroundColor: item.user_role === "CLASS_REP" ? "#f59e0b" + "15" : "transparent",
+                                                }]}
+                                            >
+                                                <Tooltip text={item.user_role === "CLASS_REP" ? "Quitar Delegado": "Asignar Delegado"}>
+                                                    <Ionicons
+                                                        name={item.user_role === "CLASS_REP" ? "star" : "star-outline"}
+                                                        size={14}
+                                                        color={item.user_role === "CLASS_REP" ? "#f59e0b" : colors.textSecondary}
+                                                    />
+                                                </Tooltip>
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
                                 )}
                             />
                         </View>
@@ -491,6 +632,8 @@ export default function GroupPage() {
                         <Text style={[styles.modalTitle, { color: colors.text }]}>Nuevo chat</Text>
                         <Input
                             label="Nombre del chat"
+                            inputTextColor={isDark ? undefined : "#ffffff"}
+                            placeholderTextColor={isDark ? undefined : "#000000"}
                             value={newChatName}
                             onChangeText={setNewChatName}
                             placeholder="Ej: Debates, Recursos..."
@@ -510,7 +653,7 @@ export default function GroupPage() {
                                     onPress={() => setNewChatType(type)}
                                 >
                                     <Ionicons name={cfg.icon} size={20} color={selected ? cfg.color : colors.textSecondary} />
-                                    <Text style={[styles.typeName, { color: selected ? cfg.color : colors.text }]}>
+                                    <Text style={[styles.typeName, { color: selected ? cfg.color : "#ffffff" }]}>
                                         {cfg.label}
                                     </Text>
                                     {selected && (
@@ -599,16 +742,23 @@ export default function GroupPage() {
 // ─── ChatCard ─────────────────────────────────────────────────────────────────
 
 function ChatCard({
-    chat, isAdmin, isActive, onPress, onManageMembers,
+    chat, isAdmin, isActive, onPress, onManageMembers, onRename, onDelete,
 }: {
     chat: GroupChat
     isAdmin: boolean
     isActive: boolean
     onPress: () => void
     onManageMembers: () => void
+    onRename: () => void
+    onDelete: () => void
 }) {
     const cfg = CHAT_TYPE_CONFIG[chat.chat_type]
     const { colors, isDark } = useTheme()
+
+    const menuItems: ContextMenuItem[] = [
+        { label: "Editar nombre", icon: "pencil-outline", onPress: onRename },
+        { label: "Eliminar chat", icon: "trash-outline", color: "#ef4444", onPress: onDelete },
+    ]
 
     return (
         <TouchableOpacity
@@ -634,7 +784,11 @@ function ChatCard({
                     <Ionicons name="person-add-outline" size={20} color={colors.primary} />
                 </TouchableOpacity>
             )}
-            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            {isAdmin && (
+                <ContextMenu items={menuItems}>
+                    <Ionicons name="ellipsis-vertical" size={18} color={colors.textTertiary} />
+                </ContextMenu>
+            )}
         </TouchableOpacity>
     )
 }
@@ -711,13 +865,13 @@ async function getEligibleMembers(groupId: string, chatId: string): Promise<User
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-    center:    { flex: 1, justifyContent: "center", alignItems: "center" },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
     container: { flex: 1 },
 
     // Dos paneles horizontales
     panelsWrapper: { flex: 1, overflow: "hidden" },
-    panelsRow:     { flexDirection: "row", flex: 1 },
-    panel:         { flex: 1 },  // height fills via alignItems: stretch
+    panelsRow: { flexDirection: "row", flex: 1 },
+    panel: { flex: 1 },  // height fills via alignItems: stretch
 
     // Panel izquierdo: header
     header: {
@@ -729,7 +883,7 @@ const styles = StyleSheet.create({
         zIndex: 100,
         overflow: "visible",
     },
-    backBtn:   { padding: Spacing.xs },
+    backBtn: { padding: Spacing.xs },
     headerBtn: { padding: 4 },
     groupName: { ...Typography.h3, flex: 1 },
 
@@ -747,12 +901,12 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     iconContainer: { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center" },
-    cardContent:   { flex: 1, gap: Spacing.xs },
-    chatName:      { ...Typography.body, fontWeight: "600" },
-    chatType:      { ...Typography.caption },
-    manageBtn:     { padding: 4 },
-    empty:         { alignItems: "center", marginTop: 60, gap: Spacing.md },
-    emptyText:     { ...Typography.bodySmall },
+    cardContent: { flex: 1, gap: Spacing.xs },
+    chatName: { ...Typography.body, fontWeight: "600" },
+    chatType: { ...Typography.caption },
+    manageBtn: { padding: 4 },
+    empty: { alignItems: "center", marginTop: 60, gap: Spacing.md },
+    emptyText: { ...Typography.bodySmall },
     createCard: {
         flexDirection: "row",
         alignItems: "center",
@@ -782,15 +936,15 @@ const styles = StyleSheet.create({
     },
 
     // Panel derecho vacío
-    noChat:     { flex: 1, justifyContent: "center", alignItems: "center", gap: Spacing.md },
+    noChat: { flex: 1, justifyContent: "center", alignItems: "center", gap: Spacing.md },
     noChatText: { ...Typography.bodySmall },
 
     // Modales
     overlay: { flex: 1, backgroundColor: "#00000066", justifyContent: "center", padding: Spacing.xl },
-    modal:   { borderRadius: BorderRadius.xl, padding: Spacing.xl, gap: Spacing.md },
-    modalTitle:   { ...Typography.h3, fontWeight: "700" },
+    modal: { borderRadius: BorderRadius.xl, padding: Spacing.xl, gap: Spacing.md },
+    modalTitle: { ...Typography.h3, fontWeight: "700" },
     modalActions: { flexDirection: "row", gap: Spacing.sm, marginTop: Spacing.xs },
-    typeLabel:  { ...Typography.caption, marginBottom: -Spacing.xs },
+    typeLabel: { ...Typography.caption, marginBottom: -Spacing.xs },
     typeOption: {
         flexDirection: "row",
         alignItems: "center",
@@ -799,9 +953,9 @@ const styles = StyleSheet.create({
         borderRadius: BorderRadius.md,
         padding: Spacing.sm,
     },
-    typeName:     { fontSize: 14, fontWeight: "600" },
+    typeName: { fontSize: 14, fontWeight: "600" },
     memberHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-    memberList:   { maxHeight: 220 },
+    memberList: { maxHeight: 220 },
     memberRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -809,10 +963,10 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.sm,
         borderBottomWidth: 1,
     },
-    memberAvatar:  { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center" },
+    memberAvatar: { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center" },
     memberInitial: { fontSize: 14, fontWeight: "700" },
-    memberName:    { flex: 1, fontSize: 14 },
-    noMembers:     { fontSize: 13, textAlign: "center", paddingVertical: Spacing.lg },
+    memberName: { flex: 1, fontSize: 14 },
+    noMembers: { fontSize: 13, textAlign: "center", paddingVertical: Spacing.lg },
     infoBlock: {
         borderWidth: 1,
         borderRadius: BorderRadius.lg,
@@ -836,4 +990,13 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.sm,
         borderBottomWidth: 1,
     },
+    classRepBtn: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        borderWidth: 1,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
 })

@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { FlatList } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -45,7 +45,7 @@ export default function Home() {
       .select("user_role")
       .eq("user_id", currentUser.id)
       .single()
-    setIsAdmin(profile?.user_role === "ADMIN")
+    setIsAdmin(profile?.user_role === "ADMIN" || profile?.user_role === "TEACHER")
     setJoinedGroups(await getJoinedGroups(currentUser.id))
     setLoading(false)
   }
@@ -102,19 +102,18 @@ export default function Home() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Grupos</Text>
+        {isAdmin && (
+          <Button
+            title="Nuevo grupo"
+            onPress={() => router.push("/groups/newGroupPage" as any)}
+            size="small"
+          />
+        )}
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        <View style={styles.pageHeader}>
-          <Text style={[styles.pageTitle, { color: colors.text }]}>Grupos</Text>
-          {isAdmin && (
-            <Button
-              title="Nuevo grupo"
-              onPress={() => router.push("/groups/newGroupPage" as any)}
-              size="small"
-            />
-          )}
-        </View>
         <GroupList
-          title="Tus Grupos"
           groups={joinedGroups}
           onAction={loadData}
         />
@@ -124,11 +123,9 @@ export default function Home() {
 }
 
 function GroupList({
-  title,
   groups,
   onAction,
 }: {
-  title: string,
   groups: Group[],
   onAction: () => void
 }) {
@@ -137,7 +134,6 @@ function GroupList({
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: isDark ? colors.text : "#000000" }]}>{title}</Text>
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id}
@@ -175,7 +171,7 @@ function GroupCard({
   if (isMobile) {
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.surface }]}
+        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
         onPress={() => router.push({ pathname: "/groups/[id]" as any, params: { id } })}
         activeOpacity={0.75}
         disabled={loadingAction}
@@ -184,10 +180,10 @@ function GroupCard({
           <View style={styles.mobileGroupTitleRow}>
             <View style={[styles.mobileGroupIcon, { backgroundColor: iconColor ?? colors.primary + "33", borderColor: colors.border }]} />
             <View style={styles.mobileGroupTextBlock}>
-              <Text style={[styles.cardTitle, { color: isDark ? colors.text : "#000000" }]} numberOfLines={1}>
+              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
                 {name}
               </Text>
-              <Text style={[styles.mobileGroupMembers, { color: isDark ? colors.textSecondary : "#000000" }]}>
+              <Text style={[styles.mobileGroupMembers, { color: colors.textSecondary }]}>
                 {memberCount} {memberCount === 1 ? "miembro" : "miembros"}
               </Text>
             </View>
@@ -205,7 +201,7 @@ function GroupCard({
     >
       <View style={styles.cardHeader}>
         <Text style={[styles.cardTitle, { color: isDark ? colors.text : "#000000" }]}>{name}</Text>
-        <Text style={[styles.cardDescription, { color: isDark ? colors.textSecondary : "#000000" }]}>
+        <Text style={[styles.cardDescription, { color: isDark ? colors.textSecondary : "#00000000" }]}>
           {memberCount} {memberCount === 1 ? "miembro" : "miembros"}
         </Text>
       </View>
@@ -215,9 +211,6 @@ function GroupCard({
           onPress={handleLeave}
           disabled={loadingAction}
         >
-          <Text style={[styles.btnText, { color: colors.onPrimary }]}>
-            {loadingAction ? "..." : "Salir"}
-          </Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -233,9 +226,8 @@ function WebGroupGrid({
   onAction: () => void
   isAdmin: boolean
 }) {
-  const { colors, isDark } = useTheme()
+  const { colors } = useTheme()
   const [loadingId, setLoadingId] = useState<string | null>(null)
-  const [addHovered, setAddHovered] = useState(false)
 
   async function handleLeave(id: string) {
     setLoadingId(id)
@@ -244,52 +236,51 @@ function WebGroupGrid({
     setLoadingId(null)
   }
 
-  const items: (Group | null)[] = isAdmin ? [...groups, null] : [...groups]
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Grupos</Text>
+        {isAdmin && (
+          <Button
+            title="Nuevo grupo"
+            onPress={() => router.push("/groups/newGroupPage" as any)}
+            size="small"
+          />
+        )}
+      </View>
       <ScrollView contentContainerStyle={styles.webScrollContainer}>
-        <Text style={[styles.webTitle, { color: isDark ? colors.text : "#000000" }]}>grupos</Text>
-        <View style={styles.webGrid}>
-          {items.map((group, index) => {
-            if (group === null) {
+        {chunk(groups, 2).map((row, rowIndex) => (
+          <View key={rowIndex} style={styles.webGrid}>
+            {row.map((group, colIndex) => {
+              const iconColor = ICON_COLORS[(rowIndex * 2 + colIndex) % ICON_COLORS.length]
               return (
-                <Pressable
-                  key="__add__"
-                  style={[styles.webCard, {
-                    backgroundColor: addHovered ? colors.primaryDark : colors.primary,
-                    borderColor: addHovered ? colors.primaryDark : colors.primary,
-                  }]}
-                  onPress={() => router.push("/groups/newGroupPage" as any)}
-                  onHoverIn={() => setAddHovered(true)}
-                  onHoverOut={() => setAddHovered(false)}
+                <TouchableOpacity
+                  key={group.id}
+                  style={[styles.webCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  onPress={() => router.push({ pathname: "/groups/[id]" as any, params: { id: group.id } })}
+                  onLongPress={() => handleLeave(group.id)}
+                  activeOpacity={0.75}
+                  disabled={loadingId === group.id}
                 >
-                  <Ionicons name="add" size={18} color={addHovered ? colors.onPrimaryHover : colors.onPrimary} />
-                  <Text style={[styles.webAddText, { color: addHovered ? colors.onPrimaryHover : colors.onPrimary }]}>Añadir nuevo Grupo</Text>
-                </Pressable>
+                  <View style={[styles.webIconBox, { backgroundColor: iconColor }]} />
+                  <Text style={[styles.webCardTitle, { color: colors.text }]} numberOfLines={2}>
+                    {group.name}
+                  </Text>
+                </TouchableOpacity>
               )
-            }
-            const iconColor = ICON_COLORS[index % ICON_COLORS.length]
-            return (
-              <TouchableOpacity
-                key={group.id}
-                style={[styles.webCard, { borderColor: isDark ? colors.border : "#000000" }]}
-                onPress={() => router.push({ pathname: "/groups/[id]" as any, params: { id: group.id } })}
-                onLongPress={() => handleLeave(group.id)}
-                activeOpacity={0.75}
-                disabled={loadingId === group.id}
-              >
-                <View style={[styles.webIconBox, { backgroundColor: iconColor }]} />
-                <Text style={[styles.webCardTitle, { color: isDark ? colors.text : "#000000" }]} numberOfLines={2}>
-                  {group.name}
-                </Text>
-              </TouchableOpacity>
-            )
-          })}
-        </View>
+            })}
+            {row.length === 1 && <View style={styles.webCardPlaceholder} />}
+          </View>
+        ))}
       </ScrollView>
     </SafeAreaView>
   )
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const result: T[][] = []
+  for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size))
+  return result
 }
 
 async function getJoinedGroups(userId: string): Promise<Group[]> {
@@ -312,9 +303,15 @@ async function getJoinedGroups(userId: string): Promise<Group[]> {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: 1,
+  },
+  headerTitle: { fontSize: 22, fontWeight: "700" },
   scrollContainer: { flexGrow: 1, padding: 16, gap: 24, paddingBottom: 96 },
-  pageHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  pageTitle: { fontSize: 22, fontWeight: "700" },
   mobileGroupTitleRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -339,11 +336,10 @@ const styles = StyleSheet.create({
   btn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   btnText: { fontWeight: "500", fontSize: 13 },
   // Web grid
-  webScrollContainer: { padding: 24, paddingLeft: 36, paddingBottom: 48 },
-  webTitle: { fontSize: 20, fontWeight: "600", marginBottom: 16 },
-  webGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16 },
-  webCard: { width: "47%", minHeight: 90, borderWidth: 1, borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 },
+  webScrollContainer: { padding: 16, paddingBottom: 48, gap: 12 },
+  webGrid: { flexDirection: "row", gap: 12 },
+  webCard: { flex: 1, minHeight: 90, borderWidth: 1, borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 },
+  webCardPlaceholder: { flex: 1 },
   webIconBox: { width: 32, height: 32, borderRadius: 8, flexShrink: 0 },
   webCardTitle: { fontSize: 14, fontWeight: "600", flexShrink: 1 },
-  webAddText: { fontWeight: "600", fontSize: 13 },
 })

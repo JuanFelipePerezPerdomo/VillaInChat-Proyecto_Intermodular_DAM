@@ -69,13 +69,12 @@ Deno.serve(async (req) => {
         return json({ ok: false, reason: "No recipients" });
     }
 
-    // 4. Fetch push tokens of recipients who have notifications enabled
+    // 4. Fetch push tokens of recipients (mentions always notify regardless of notifications_enabled)
     const { data: profiles } = await supabase
         .from("user_profile")
         .select("push_token")
         .in("user_id", recipientIds)
-        .not("push_token", "is", null)
-        .eq("notifications_enabled", true);
+        .not("push_token", "is", null);
 
     // Deduplicate tokens — same device may be registered under multiple accounts in testing
     const tokens = [...new Set(

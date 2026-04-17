@@ -9,8 +9,14 @@ export function usePushToken(userId: string | null) {
     useEffect(() => {
         if (!userId || isExpoGo) return;
 
-        getExpoPushToken().then(token => {
+        getExpoPushToken().then(async token => {
             if (!token) return;
+            // Clear this token from any other user first (prevents duplicate-token notifications)
+            await supabase
+                .from('user_profile')
+                .update({ push_token: null })
+                .eq('push_token', token)
+                .neq('user_id', userId)
             supabase
                 .from('user_profile')
                 .update({ push_token: token })

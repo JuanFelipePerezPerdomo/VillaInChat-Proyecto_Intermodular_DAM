@@ -1,5 +1,6 @@
 import { createRoom } from '@/src/actions/rooms';
 import { Button, Card, Input, LoadingSwap } from '@/src/components/ui';
+import { useTheme } from '@/src/hooks';
 import { createRoomSchema } from "@/src/schemas/roomSchema";
 import { Spacing, Typography } from "@/src/themes";
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +19,7 @@ const CHAT_TYPE_OPTIONS: { value: FormData["chatType"]; label: string; descripti
 ]
 
 export default function newRoomPage(){
+    const { isDark } = useTheme()
     const { control, handleSubmit, formState: {errors, isSubmitting}} = useForm<FormData>({
         defaultValues: {
             name: "",
@@ -54,6 +56,8 @@ export default function newRoomPage(){
                             <View>
                                 <Input
                                     label="Nombre del Chat"
+                                    inputTextColor={isDark ? undefined : "#ffffff"}
+                                    placeholderTextColor={isDark ? undefined : "#000000"}
                                     value={value}
                                     onChangeText={onChange}
                                     placeholder="Inserte un nombre"
@@ -190,13 +194,13 @@ const styles = StyleSheet.create({
     typeOptionLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#374151',
+        color: '#ffffff',
     },
     typeOptionLabelSelected: {
         color: '#6366f1',
     },
     typeOptionDesc: {
         fontSize: 12,
-        color: '#6b7280',
+        color: '#ffffff',
     },
 });

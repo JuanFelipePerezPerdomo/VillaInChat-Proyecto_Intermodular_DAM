@@ -1,50 +1,49 @@
-# Welcome to your Expo app 👋
+<p align="center">
+  <img src="./assets/images/icon.png" alt="VillaInChat Logo" width="150" />
+  <h1 align="center">VillaInChat</h1>
+</p>
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+<p align="center">
+  <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="version" />
+  <img src="https://img.shields.io/badge/Framework-React%20Native-20232A?logo=react&logoColor=61DAFB" alt="React Native Framework" />
+  <img src="https://img.shields.io/badge/Platform-Expo-white?logo=expo&logoColor=black" alt="Expo Platform" />
+  <img src="https://img.shields.io/badge/Language-TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript Language" />
+  <img src="https://img.shields.io/badge/BaaS-Supabase-3ECF8E?logo=supabase&logoColor=white" alt="Supabase BaaS" />
+  <img src="https://img.shields.io/badge/Proyecto-DAM-ff69b4.svg" alt="Proyecto DAM" />
+</p>
 
-## Get started
+---
 
-1. Install dependencies
+## 🛖 Plataforma de Comunicación para Comunidades
 
-   ```bash
-   npm install
-   ```
+<img src="./assets/images/splash-icon.png" align="right" width="200" alt="VillaInChat Splash">
 
-2. Start the app
+**VillaInChat** es una aplicación desarrollada con React Native y Expo, concebida como Proyecto Intermodular para el ciclo de Desarrollo de Aplicaciones Multiplataforma (DAM). Su objetivo principal es facilitar y centralizar la comunicación estudiantes y profesorado, ofreciendo herramientas de mensajería en tiempo real y gestión administrativa.
 
-   ```bash
-   npx expo start
-   ```
+### ✨ Características Principales
 
-In the output, you'll find options to open the app in a
+*   💬 **Salas de Chat Privadas y de Grupo:** Comunicación instantánea y directa entre vecinos mediante WebSockets o actualizaciones en tiempo real.
+*   🛡️ **Panel de Administración Restringido:** Sección exclusiva de ajustes y control (`AdminSettingsPanel`) protegida por el rol del usuario (requiere permisos de Administrador validados en base de datos).
+*   ⚙️ **Ajustes y Personalización:** Menú de configuración interactivo que incluye selección de temas (Modo Claro / Oscuro) y un sistema expansible de apartados.
+*   📱 **Experiencia de Usuario (UX) Nativa:** Uso de Bottom Sheets y animaciones fluidas para una navegación cómoda e intuitiva en dispositivos móviles.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+<br clear="both"/>
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## 🛠 Tecnologías y Arquitectura
 
-When you're ready, run:
+### Frontend (App Móvil)
 
-```bash
-npm run reset-project
-```
+*   **Framework:** React Native + Expo (con `newArchEnabled`).
+*   **Lenguaje:** TypeScript.
+*   **Navegación:** `expo-router` basado en un sistema de archivos (File-based routing), estructurado en pestañas de navegación (Bottom Tabs).
+*   **Formularios y Validación:** `react-hook-form` junto con su resolución semántica a través de `zod`.
+*   **Gestión de Estado:** `zustand` para manejo de estados globales predictivos y Context API cuando es necesario de forma localizada.
+*   **UI Adicional:** `@gorhom/bottom-sheet` para modales y `lucide-react-native` para iconografía limpia.
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Backend como Servicio (BaaS)
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+*   **Plataforma:** Supabase.
+*   **Base de datos:** PostgreSQL con verificación a nivel de usuario y roles (como los controles dentro de la tabla `user_profile`).
+*   **Autenticación:** Integración con la solución nativa de Supabase Auth.

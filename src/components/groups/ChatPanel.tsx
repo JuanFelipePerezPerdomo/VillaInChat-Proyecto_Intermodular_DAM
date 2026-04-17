@@ -29,17 +29,20 @@ type Props = {
     chatName: string
     onBack: () => void
     groupMembers?: GroupMember[]
+    chatType?: string
+    userGroupRole?: string
 }
 
-export function ChatPanel({ chatId, chatName, onBack, groupMembers }: Props) {
+export function ChatPanel({ chatId, chatName, onBack, groupMembers, chatType, userGroupRole }: Props) {
+    const canWrite = chatType !== "ANNOUNCEMENTS" || userGroupRole === "ADMIN" || userGroupRole === "CLASS_REP"
     const { colors, isDark } = useTheme()
     const { openUserSheet } = useUserSheet()
 
-    const [messages, setMessages]       = useState<Message[]>([])
+    const [messages, setMessages] = useState<Message[]>([])
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-    const [newMessage, setNewMessage]   = useState("")
-    const [loading, setLoading]         = useState(true)
-    const [sending, setSending]         = useState(false)
+    const [newMessage, setNewMessage] = useState("")
+    const [loading, setLoading] = useState(true)
+    const [sending, setSending] = useState(false)
 
     // Reload messages whenever the chat changes
     useEffect(() => {
@@ -66,19 +69,24 @@ export function ChatPanel({ chatId, chatName, onBack, groupMembers }: Props) {
 
     // Real-time subscription per chat
     useEffect(() => {
+        let active = true
+        // Unique name per mount avoids "cannot add callbacks after subscribe" in React 18 Strict Mode
+        const channelName = `chat_panel:${chatId}:${Date.now()}`
         const channel = supabase
-            .channel(`chat_panel:${chatId}`)
+            .channel(channelName)
             .on("postgres_changes", {
                 event: "INSERT",
                 schema: "public",
                 table: "messages",
                 filter: `FK_chat_id=eq.${chatId}`,
             }, async (payload) => {
+                if (!active) return
                 const { data: authorData } = await supabase
                     .from("user_profile")
                     .select("username")
                     .eq("user_id", payload.new.FK_author_id)
                     .single()
+                if (!active) return
                 setMessages(prev => [{
                     id: payload.new.id,
                     created_at: payload.new.created_at,
@@ -88,7 +96,10 @@ export function ChatPanel({ chatId, chatName, onBack, groupMembers }: Props) {
                 }, ...prev])
             })
             .subscribe()
-        return () => { supabase.removeChannel(channel) }
+        return () => {
+            active = false
+            supabase.removeChannel(channel)
+        }
     }, [chatId])
 
     async function handleSend() {
@@ -123,10 +134,7 @@ export function ChatPanel({ chatId, chatName, onBack, groupMembers }: Props) {
     }
 
     return (
-        <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <View style={{ flex: 1 }}>
             {/* Header */}
             <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
                 <TouchableOpacity onPress={onBack} style={styles.backBtn} hitSlop={8}>
@@ -180,47 +188,56 @@ export function ChatPanel({ chatId, chatName, onBack, groupMembers }: Props) {
             )}
 
             {/* Input */}
-            <View style={[styles.inputRow, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                {groupMembers ? (
-                    <MentionInput
-                        value={newMessage}
-                        onChangeText={setNewMessage}
-                        groupMembers={groupMembers}
-                        onSubmitEditing={handleSend}
-                    />
-                ) : (
-                    <TextInput
-                        style={[styles.input, { backgroundColor: colors.surface, color: isDark ? colors.text : "#ffffff" }]}
-                        value={newMessage}
-                        onChangeText={setNewMessage}
-                        placeholder="Escriba un mensaje..."
-                        placeholderTextColor={isDark ? colors.placeholder : "#000000"}
-                        multiline
-                        maxLength={500}
-                        onKeyPress={({ nativeEvent }) => {
-                            if (nativeEvent.key === "Enter" && !(nativeEvent as any).shiftKey) {
-                                handleSend()
-                            }
-                        }}
-                    />
-                )}
-                <TouchableOpacity
-                    style={[
-                        styles.sendBtn,
-                        { backgroundColor: colors.primary },
-                        (!newMessage.trim() || sending) && { backgroundColor: colors.surfaceVariant },
-                    ]}
-                    onPress={handleSend}
-                    disabled={!newMessage.trim() || sending}
-                >
-                    <Ionicons
-                        name="send"
-                        size={18}
-                        color={(!newMessage.trim() || sending) ? colors.textTertiary : "#fff"}
-                    />
-                </TouchableOpacity>
-            </View>
-        </KeyboardAvoidingView>
+            {canWrite ? (
+                <View style={[styles.inputRow, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+                    {groupMembers ? (
+                        <MentionInput
+                            value={newMessage}
+                            onChangeText={setNewMessage}
+                            groupMembers={groupMembers}
+                            onSubmitEditing={handleSend}
+                        />
+                    ) : (
+                        <TextInput
+                            style={[styles.input, { backgroundColor: colors.surface, color: isDark ? colors.text : "#ffffff" }]}
+                            value={newMessage}
+                            onChangeText={setNewMessage}
+                            placeholder="Escriba un mensaje..."
+                            placeholderTextColor={isDark ? colors.placeholder : "#000000"}
+                            multiline
+                            maxLength={500}
+                            onKeyPress={({ nativeEvent }) => {
+                                if (nativeEvent.key === "Enter" && !(nativeEvent as any).shiftKey) {
+                                    handleSend()
+                                }
+                            }}
+                        />
+                    )}
+                    <TouchableOpacity
+                        style={[
+                            styles.sendBtn,
+                            { backgroundColor: colors.primary },
+                            (!newMessage.trim() || sending) && { backgroundColor: colors.surfaceVariant },
+                        ]}
+                        onPress={handleSend}
+                        disabled={!newMessage.trim() || sending}
+                    >
+                        <Ionicons
+                            name="send"
+                            size={18}
+                            color={(!newMessage.trim() || sending) ? colors.textTertiary : "#fff"}
+                        />
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <View style={[styles.readOnlyBar, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+                    <Ionicons name="lock-closed-outline" size={16} color={colors.textTertiary} />
+                    <Text style={[styles.readOnlyText, { color: colors.textTertiary }]}>
+                        Solo delegados y administradores pueden escribir aquí
+                    </Text>
+                </View>
+            )}
+        </View>
     )
 }
 
@@ -316,16 +333,28 @@ const styles = StyleSheet.create({
         padding: Spacing.lg,
         borderBottomWidth: 1,
     },
-    backBtn:      { padding: Spacing.xs },
-    chatName:     { ...Typography.h3, flex: 1 },
+    backBtn: { padding: Spacing.xs },
+    chatName: { ...Typography.h3, flex: 1 },
     messagesList: { padding: Spacing.lg, gap: Spacing.sm },
-    emptyMessages:{ flex: 1, alignItems: "center", marginTop: 40 },
-    emptyText:    { ...Typography.bodySmall },
+    emptyMessages: { flex: 1, alignItems: "center", marginTop: 40 },
+    emptyText: { ...Typography.bodySmall },
     inputRow: {
         flexDirection: "row",
         padding: Spacing.md,
         gap: Spacing.sm,
         borderTopWidth: 1,
+    },
+    readOnlyBar: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: Spacing.xs,
+        padding: Spacing.md,
+        borderTopWidth: 1,
+    },
+    readOnlyText: {
+        ...Typography.bodySmall,
+        fontStyle: "italic",
     },
     input: {
         flex: 1,
@@ -357,26 +386,26 @@ const styles = StyleSheet.create({
         gap: Spacing.sm,
         paddingVertical: Spacing.xs,
     },
-    messageContent:     { flex: 1 },
+    messageContent: { flex: 1 },
     messageMeta: {
         flexDirection: "row",
         alignItems: "baseline",
         gap: Spacing.sm,
         marginBottom: 2,
     },
-    messageAuthor:      { fontSize: 14, fontWeight: "600" },
-    messageTime:        { fontSize: 11 },
-    messageText:        { fontSize: 14, lineHeight: 20 },
-    messageRowOwn:      { justifyContent: "flex-end" },
-    messageContentOwn:  { alignItems: "flex-end" },
-    messageMetaOwn:     { justifyContent: "flex-end" },
-    messageTextOwn:     { textAlign: "right" },
+    messageAuthor: { fontSize: 14, fontWeight: "600" },
+    messageTime: { fontSize: 11 },
+    messageText: { fontSize: 14, lineHeight: 20 },
+    messageRowOwn: { justifyContent: "flex-end" },
+    messageContentOwn: { alignItems: "flex-end" },
+    messageMetaOwn: { justifyContent: "flex-end" },
+    messageTextOwn: { textAlign: "right" },
     dateSeparator: {
         flexDirection: "row",
         alignItems: "center",
         marginVertical: Spacing.md,
         gap: Spacing.sm,
     },
-    dateLine:  { flex: 1, height: 1 },
+    dateLine: { flex: 1, height: 1 },
     dateLabel: { fontSize: 11, paddingHorizontal: Spacing.sm },
 })
