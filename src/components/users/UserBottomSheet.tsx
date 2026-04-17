@@ -1,13 +1,13 @@
 import { createDM, findExistingDM } from "@/src/actions"
 import { useTheme } from "@/src/hooks"
 import { BorderRadius, Spacing, Typography } from "@/src/themes"
+import { Ionicons } from "@expo/vector-icons"
 import BottomSheet, {
     BottomSheetBackdrop,
     BottomSheetModal,
     BottomSheetView,
 } from "@gorhom/bottom-sheet"
 import { router } from "expo-router"
-import { Ionicons } from "@expo/vector-icons"
 import { forwardRef, useCallback, useMemo, useState } from "react"
 import {
     ActivityIndicator,
@@ -38,7 +38,7 @@ type UserBottomSheetProps = {
 
 export const UserBottomSheet = forwardRef<BottomSheet, UserBottomSheetProps>(
     function UserBottomSheet({ user, onClose }, ref) {
-        const { colors } = useTheme()
+        const { colors, isDark } = useTheme()
         const insets = useSafeAreaInsets()
         const [dmModalVisible, setDmModalVisible] = useState(false)
         const [initialMessage, setInitialMessage] = useState("")
@@ -172,7 +172,11 @@ export const UserBottomSheet = forwardRef<BottomSheet, UserBottomSheetProps>(
                         onPress={() => setDmModalVisible(false)}
                     >
                         <TouchableOpacity
-                            style={[styles.modalBox, { backgroundColor: colors.card }]}
+                            style={[styles.modalBox, {
+                                backgroundColor: isDark ? colors.card : "#c2e0e0",
+                                borderWidth: isDark ? 0 : 1,
+                                borderColor: colors.border,
+                            }]}
                             activeOpacity={1}
                         >
                             <Text style={[styles.modalTitle, { color: colors.text }]}>
@@ -180,9 +184,9 @@ export const UserBottomSheet = forwardRef<BottomSheet, UserBottomSheetProps>(
                             </Text>
                             <TextInput
                                 style={[styles.modalInput, {
-                                    backgroundColor: colors.surface,
+                                    backgroundColor: isDark ? colors.surface : "#c2e0e0",
                                     color: colors.text,
-                                    borderColor: colors.border,
+                                    borderColor: isDark ? colors.border : "#c2e0e0",
                                 }]}
                                 placeholder="Escribe tu primer mensaje..."
                                 placeholderTextColor={colors.placeholder}

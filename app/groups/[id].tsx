@@ -1,6 +1,7 @@
 import { addChatMember, createGroupChat, inviteUserToGroup } from "@/src/actions"
 import { ChatPanel, GroupMemberSearch } from "@/src/components/groups"
-import { Button, Input, Tooltip, UserSearchPicker } from "@/src/components/ui"
+import { Button, ContextMenu, Input, Tooltip, UserSearchPicker } from "@/src/components/ui"
+import type { ContextMenuItem } from "@/src/components/ui"
 import { useLastGroupChat, useTheme } from "@/src/hooks"
 import { supabase } from "@/src/lib/supabase"
 import { useUserSheet } from "@/src/providers/UserSheetProvider"
@@ -103,6 +104,12 @@ export default function GroupPage() {
     const [addingId, setAddingId] = useState<string | null>(null)
     const [loadingMembers, setLoadingMembers] = useState(false)
 
+    // ── Menú de opciones de chat (⋮) ─────────────────────────────────────────
+    const [renameVisible, setRenameVisible] = useState(false)
+    const [renameChatId, setRenameChatId] = useState<string | null>(null)
+    const [renameValue, setRenameValue] = useState("")
+    const [renaming, setRenaming] = useState(false)
+
     useEffect(() => { loadData() }, [id])
 
     // Android hardware back: si no hay stack (abierto desde notificación), ir al home
@@ -156,6 +163,27 @@ export default function GroupPage() {
     async function reloadChats() {
         if (!currentUserId) return
         setChats(await getGroupChats(id, currentUserId))
+    }
+
+    async function handleRenameChat() {
+        if (!renameChatId || !renameValue.trim()) return
+        setRenaming(true)
+        await supabase.from("chat_room").update({ name: renameValue.trim() }).eq("chat_id", renameChatId)
+        setRenaming(false)
+        setRenameVisible(false)
+        setRenameChatId(null)
+        setRenameValue("")
+        reloadChats()
+    }
+
+    async function handleDeleteChat(chatId: string) {
+        await supabase.from("chat_room").delete().eq("chat_id", chatId)
+        if (activeChatId === chatId) {
+            setActiveChatId(null)
+            setActiveChatName("")
+            panelX.value = withTiming(0, SNAP)
+        }
+        reloadChats()
     }
 
     // ── Navegación entre paneles ─────────────────────────────────────────────
@@ -329,6 +357,12 @@ export default function GroupPage() {
                                             isActive={item.chat.chat_id === activeChatId}
                                             onPress={() => goToChat(item.chat.chat_id, item.chat.name)}
                                             onManageMembers={() => openMemberSearch(item.chat.chat_id)}
+                                            onRename={() => {
+                                                setRenameChatId(item.chat.chat_id)
+                                                setRenameValue(item.chat.name)
+                                                setRenameVisible(true)
+                                            }}
+                                            onDelete={() => handleDeleteChat(item.chat.chat_id)}
                                         />
                                     ) : (
                                         <TouchableOpacity
@@ -387,7 +421,7 @@ export default function GroupPage() {
                                 />
                             ) : (
                                 <View style={styles.noChat}>
-                                    <Ionicons name="chatbubble-ellipses-outline" size={52} color={colors.border} />
+                                    <Ionicons name="chatbubble-ellipses-outline" size={52} color="#2d6a4f" />
                                     <Text style={[styles.noChatText, { color: colors.textTertiary }]}>
                                         Selecciona un chat
                                     </Text>
@@ -400,6 +434,36 @@ export default function GroupPage() {
             </KeyboardAvoidingView>
 
             {/* ─── Modales ──────────────────────────────────────────────────── */}
+
+            {/* Modal renombrar chat */}
+            <Modal
+                visible={renameVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setRenameVisible(false)}
+            >
+                <View style={styles.overlay}>
+                    <View style={[styles.modal, { backgroundColor: colors.card }]}>
+                        <View style={styles.memberHeader}>
+                            <Text style={[styles.modalTitle, { color: colors.text }]}>Editar nombre</Text>
+                            <TouchableOpacity onPress={() => setRenameVisible(false)} hitSlop={8}>
+                                <Ionicons name="close" size={22} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+                        <Input
+                            label="Nombre del chat"
+                            value={renameValue}
+                            onChangeText={setRenameValue}
+                            placeholder="Nuevo nombre..."
+                        />
+                        <Button
+                            title={renaming ? "Guardando…" : "Guardar"}
+                            onPress={handleRenameChat}
+                            disabled={renaming || !renameValue.trim()}
+                        />
+                    </View>
+                </View>
+            </Modal>
 
             {/* Mas informacion del grupo */}
             <Modal visible={infoVisible} transparent animationType="fade" onRequestClose={() => setInfoVisible(false)}>
@@ -678,16 +742,23 @@ export default function GroupPage() {
 // ─── ChatCard ─────────────────────────────────────────────────────────────────
 
 function ChatCard({
-    chat, isAdmin, isActive, onPress, onManageMembers,
+    chat, isAdmin, isActive, onPress, onManageMembers, onRename, onDelete,
 }: {
     chat: GroupChat
     isAdmin: boolean
     isActive: boolean
     onPress: () => void
     onManageMembers: () => void
+    onRename: () => void
+    onDelete: () => void
 }) {
     const cfg = CHAT_TYPE_CONFIG[chat.chat_type]
     const { colors, isDark } = useTheme()
+
+    const menuItems: ContextMenuItem[] = [
+        { label: "Editar nombre", icon: "pencil-outline", onPress: onRename },
+        { label: "Eliminar chat", icon: "trash-outline", color: "#ef4444", onPress: onDelete },
+    ]
 
     return (
         <TouchableOpacity
@@ -713,7 +784,11 @@ function ChatCard({
                     <Ionicons name="person-add-outline" size={20} color={colors.primary} />
                 </TouchableOpacity>
             )}
-            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            {isAdmin && (
+                <ContextMenu items={menuItems}>
+                    <Ionicons name="ellipsis-vertical" size={18} color={colors.textTertiary} />
+                </ContextMenu>
+            )}
         </TouchableOpacity>
     )
 }
@@ -923,4 +998,5 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
+
 })

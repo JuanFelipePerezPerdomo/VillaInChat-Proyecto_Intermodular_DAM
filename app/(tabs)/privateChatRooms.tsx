@@ -121,8 +121,8 @@ function RoomList({
       <FlatList
         data={rooms}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <RoomCard {...item} onAction={onAction} />
+        renderItem={({ item, index }) => (
+          <RoomCard {...item} onAction={onAction} iconColor={ICON_COLORS[index % ICON_COLORS.length]} />
         )}
         scrollEnabled={false}
       />
@@ -137,7 +137,8 @@ function RoomCard({
   lastMessage,
   lastMessageAt,
   onAction,
-}: Room & { onAction: () => void }) {
+  iconColor,
+}: Room & { onAction: () => void; iconColor: string }) {
   const [loadingAction, setLoadingAction] = useState(false)
   const { colors, isDark } = useTheme()
   const isMobile = Platform.OS !== "web"
@@ -158,8 +159,8 @@ function RoomCard({
         activeOpacity={0.75}
         disabled={loadingAction}
       >
-        <View style={[styles.mobileAvatar, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-          <Text style={[styles.mobileAvatarText, { color: colors.text }]}>
+        <View style={[styles.mobileAvatar, { borderColor: "transparent", backgroundColor: isDark ? iconColor + "33" : iconColor }]}>
+          <Text style={[styles.mobileAvatarText, { color: isDark ? iconColor : "#fff" }]}>
             {name.charAt(0).toUpperCase()}
           </Text>
         </View>
@@ -181,47 +182,49 @@ function RoomCard({
 
 function WebRoomGrid({
   rooms,
-  onAction,
 }: {
   rooms: Room[]
   onAction: () => void
 }) {
   const { colors, isDark } = useTheme()
-  const [loadingId, setLoadingId] = useState<string | null>(null)
-
-  async function handleLeave(id: string) {
-    setLoadingId(id)
-    await leaveRoom(id)
-    onAction()
-    setLoadingId(null)
-  }
-
-  const items: Room[] = [...rooms]
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.webScrollContainer}>
-        <Text style={[styles.webTitle, { color: isDark ? colors.text : "#000000" }]}>chats privados</Text>
-        <View style={styles.webGrid}>
-          {items.map((room, index) => {
-            const iconColor = ICON_COLORS[index % ICON_COLORS.length]
-            return (
-              <TouchableOpacity
-                key={room.id}
-                style={[styles.webCard, { borderColor: isDark ? colors.border : "#000000" }]}
-                onPress={() => router.push({ pathname: "/rooms/[id]" as any, params: { id: room.id } })}
-                onLongPress={() => handleLeave(room.id)}
-                activeOpacity={0.75}
-                disabled={loadingId === room.id}
-              >
-                <View style={[styles.webIconBox, { backgroundColor: iconColor }]} />
-                <Text style={[styles.webCardTitle, { color: isDark ? colors.text : "#000000" }]} numberOfLines={2}>
-                  {room.name}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Chats Privados</Text>
+      </View>
+      <ScrollView contentContainerStyle={styles.webList}>
+        {rooms.map((room, index) => {
+          const iconColor = ICON_COLORS[index % ICON_COLORS.length]
+          const lastTime = formatLastMessageTime(room.lastMessageAt)
+          return (
+            <TouchableOpacity
+              key={room.id}
+              style={[styles.webRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => router.push({ pathname: "/rooms/[id]" as any, params: { id: room.id } })}
+              activeOpacity={0.75}
+            >
+              <View style={[styles.webAvatar, { backgroundColor: isDark ? iconColor + "33" : iconColor }]}>
+                <Text style={[styles.webAvatarText, { color: isDark ? iconColor : "#fff" }]}>
+                  {room.name[0]?.toUpperCase() ?? "?"}
                 </Text>
-              </TouchableOpacity>
-            )
-          })}
-        </View>
+              </View>
+              <View style={styles.webRowContent}>
+                <View style={styles.webRowTop}>
+                  <Text style={[styles.webRowTitle, { color: colors.text }]} numberOfLines={1}>
+                    {room.name.toUpperCase()}
+                  </Text>
+                  {lastTime ? (
+                    <Text style={[styles.webRowTime, { color: colors.textTertiary }]}>{lastTime}</Text>
+                  ) : null}
+                </View>
+                <Text style={[styles.webRowSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {room.lastMessage || "Sin mensajes"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )
+        })}
       </ScrollView>
     </SafeAreaView>
   )
@@ -334,12 +337,14 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     marginTop: 6,
   },
-  // Web grid
-  webScrollContainer: { padding: 24, paddingLeft: 36, paddingBottom: 48 },
-  webTitle: { fontSize: 20, fontWeight: "600", marginBottom: 16 },
-  webGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, padding: 16 },
-  webCard: { width: "47%", minHeight: 90, borderWidth: 1, borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 10 },
-  webIconBox: { width: 32, height: 32, borderRadius: 8, flexShrink: 0 },
-  webCardTitle: { fontSize: 14, fontWeight: "600", flexShrink: 1 },
-  webAddText: { fontWeight: "600", fontSize: 13 },
+  // Web list
+  webList: { padding: 16, gap: 8 },
+  webRow: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 12, borderWidth: 1, padding: 14 },
+  webAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  webAvatarText: { fontSize: 16, fontWeight: "700" },
+  webRowContent: { flex: 1, gap: 2 },
+  webRowTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 8 },
+  webRowTitle: { fontSize: 14, fontWeight: "600", flex: 1 },
+  webRowTime: { fontSize: 11 },
+  webRowSub: { fontSize: 12 },
 })

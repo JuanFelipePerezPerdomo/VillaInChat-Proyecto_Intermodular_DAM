@@ -154,6 +154,10 @@ export default function SignIn() {
                   </View>
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            <Text style={[styles.copyright, { color: colors.textTertiary }]}>
+                © 2026 VillaInChat · Juan Felipe Pérez Perdomo, Martín Oliver & Álvaro Eugenio
+            </Text>
         </SafeAreaView>
     );
 }
@@ -251,5 +255,11 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: 520,
         alignSelf: 'center',
+    },
+    copyright: {
+        fontSize: 11,
+        textAlign: "center",
+        paddingVertical: Spacing.sm,
+        paddingHorizontal: Spacing.lg,
     },
 });

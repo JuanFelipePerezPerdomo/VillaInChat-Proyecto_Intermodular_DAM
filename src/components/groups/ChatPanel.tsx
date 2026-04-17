@@ -69,19 +69,24 @@ export function ChatPanel({ chatId, chatName, onBack, groupMembers, chatType, us
 
     // Real-time subscription per chat
     useEffect(() => {
+        let active = true
+        // Unique name per mount avoids "cannot add callbacks after subscribe" in React 18 Strict Mode
+        const channelName = `chat_panel:${chatId}:${Date.now()}`
         const channel = supabase
-            .channel(`chat_panel:${chatId}`)
+            .channel(channelName)
             .on("postgres_changes", {
                 event: "INSERT",
                 schema: "public",
                 table: "messages",
                 filter: `FK_chat_id=eq.${chatId}`,
             }, async (payload) => {
+                if (!active) return
                 const { data: authorData } = await supabase
                     .from("user_profile")
                     .select("username")
                     .eq("user_id", payload.new.FK_author_id)
                     .single()
+                if (!active) return
                 setMessages(prev => [{
                     id: payload.new.id,
                     created_at: payload.new.created_at,
@@ -91,7 +96,10 @@ export function ChatPanel({ chatId, chatName, onBack, groupMembers, chatType, us
                 }, ...prev])
             })
             .subscribe()
-        return () => { supabase.removeChannel(channel) }
+        return () => {
+            active = false
+            supabase.removeChannel(channel)
+        }
     }, [chatId])
 
     async function handleSend() {

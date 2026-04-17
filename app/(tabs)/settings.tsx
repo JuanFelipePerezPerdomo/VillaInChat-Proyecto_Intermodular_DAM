@@ -1,21 +1,27 @@
 import { Button, Card } from "@/src/components/ui";
+import { MENTIONS_TEACHERS_ONLY_KEY } from "@/src/constants/notificationSettings";
 import { useTheme } from "@/src/hooks";
 import { supabase } from "@/src/lib/supabase";
 import { getCurrentUser } from "@/src/services/getCurrentUser";
 import { useSettingsStore } from "@/src/stores";
-import { MENTIONS_TEACHERS_ONLY_KEY } from "@/src/constants/notificationSettings";
 import { Spacing, Typography } from "@/src/themes";
 import type { ThemeMode } from "@/src/types";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import { Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Platform, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
+import Animated, {
+    Easing,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const THEME_OPTIONS: { value: ThemeMode; label: string; icon: string }[] = [
     { value: "light", label: "Claro", icon: "sunny-outline" },
     { value: "dark", label: "Oscuro", icon: "moon-outline" },
-    { value: "system", label: "Sistema", icon: "phone-portrait-outline" },
+    { value: "system", label: "Sistema", icon: Platform.OS === "web" ? "desktop-outline" : "phone-portrait-outline" },
 ];
 
 const SETTINGS_SECTIONS = [
@@ -23,6 +29,98 @@ const SETTINGS_SECTIONS = [
     { key: "notificaciones", label: "Notificaciones", icon: "notifications-outline" },
     { key: "cuenta", label: "Cuenta", icon: "person-outline" },
 ];
+
+const TIMING_CONFIG = { duration: 230, easing: Easing.out(Easing.quad) };
+
+// ─── AccordionSection ─────────────────────────────────────────────────────────
+
+function AccordionSection({
+    section,
+    isExpanded,
+    onPress,
+    showDivider,
+    children,
+}: {
+    section: typeof SETTINGS_SECTIONS[number]
+    isExpanded: boolean
+    onPress: () => void
+    showDivider: boolean
+    children: React.ReactNode
+}) {
+    const { colors } = useTheme();
+    const heightValue = useSharedValue(0);
+    const rotationValue = useSharedValue(0);
+    const [contentHeight, setContentHeight] = useState(0);
+    const measured = useRef(false);
+
+    useEffect(() => {
+        rotationValue.value = withTiming(isExpanded ? 1 : 0, TIMING_CONFIG);
+        if (contentHeight > 0) {
+            heightValue.value = withTiming(isExpanded ? contentHeight : 0, TIMING_CONFIG);
+        }
+    }, [isExpanded, contentHeight]);
+
+    const animatedContentStyle = useAnimatedStyle(() => ({
+        height: heightValue.value,
+        overflow: "hidden",
+    }));
+
+    const animatedChevronStyle = useAnimatedStyle(() => ({
+        transform: [{ rotate: `${rotationValue.value * 90}deg` }],
+    }));
+
+    function handleLayout(height: number) {
+        if (height > 0 && height !== contentHeight) {
+            setContentHeight(height);
+            if (!measured.current) {
+                measured.current = true;
+                // If already open on first measure, jump to full height
+                if (isExpanded) heightValue.value = height;
+            }
+        }
+    }
+
+    return (
+        <View>
+            <TouchableOpacity
+                style={[
+                    styles.accordionHeader,
+                    showDivider && !isExpanded && {
+                        borderBottomWidth: 1,
+                        borderBottomColor: colors.border,
+                    },
+                ]}
+                onPress={onPress}
+                activeOpacity={0.7}
+            >
+                <View style={styles.accordionHeaderLeft}>
+                    <Ionicons name={section.icon as any} size={22} color={colors.icon} />
+                    <Text style={[styles.accordionTitle, { color: colors.text }]}>{section.label}</Text>
+                </View>
+                <Animated.View style={animatedChevronStyle}>
+                    <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                </Animated.View>
+            </TouchableOpacity>
+
+            <Animated.View style={animatedContentStyle}>
+                <View
+                    onLayout={(e) => handleLayout(e.nativeEvent.layout.height)}
+                    style={[
+                        styles.accordionContent,
+                        showDivider && {
+                            borderBottomWidth: 1,
+                            borderBottomColor: colors.border,
+                        },
+                    ]}
+                >
+                    {children}
+                </View>
+            </Animated.View>
+        </View>
+    );
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
 
 export default function Settings() {
     const { colors } = useTheme();
@@ -45,7 +143,9 @@ export default function Settings() {
                 .eq("user_id", user.id)
                 .single();
             if (data) {
-                setNotificationsEnabled(data.notifications_enabled ?? true);
+                const notifValue = data.notifications_enabled ?? true;
+                setNotificationsEnabled(notifValue);
+                await AsyncStorage.setItem("notifications_enabled", String(notifValue));
                 setGrade(data.grade ?? "");
                 setDraftGrade(data.grade ?? "");
             }
@@ -55,6 +155,7 @@ export default function Settings() {
 
     async function handleToggleNotifications(value: boolean) {
         setNotificationsEnabled(value);
+        await AsyncStorage.setItem("notifications_enabled", String(value));
         const user = await getCurrentUser();
         if (!user) return;
         await supabase
@@ -113,191 +214,160 @@ export default function Settings() {
             <View style={styles.content}>
                 <Card style={styles.cardContainer}>
                     {SETTINGS_SECTIONS.map((section, index) => (
-                        <View key={section.key}>
-                            <TouchableOpacity
-                                style={[
-                                    styles.accordionHeader,
-                                    index < SETTINGS_SECTIONS.length - 1 && expandedSection !== section.key && {
-                                        borderBottomWidth: 1,
-                                        borderBottomColor: colors.border,
-                                    },
-                                ]}
-                                onPress={() => handlePressSection(section.key)}
-                                activeOpacity={0.7}
-                            >
-                                <View style={styles.accordionHeaderLeft}>
-                                    <Ionicons name={section.icon as any} size={22} color={colors.icon} />
-                                    <Text style={[styles.accordionTitle, { color: colors.text }]}>{section.label}</Text>
-                                </View>
-                                <Ionicons
-                                    name={expandedSection === section.key ? "chevron-down" : "chevron-forward"}
-                                    size={20}
-                                    color={colors.icon}
-                                />
-                            </TouchableOpacity>
-
-                            {expandedSection === section.key && (
-                                <View style={[styles.accordionContent,
-                                    index < SETTINGS_SECTIONS.length - 1 && {
-                                        borderBottomWidth: 1,
-                                        borderBottomColor: colors.border,
-                                    }]}>
-                                    {section.key === "tema" && (
-                                        THEME_OPTIONS.map((option) => (
-                                            <TouchableOpacity
-                                                key={option.value}
-                                                style={styles.optionRow}
-                                                onPress={() => setTheme(option.value)}
-                                                activeOpacity={0.7}
-                                            >
-                                                <View style={styles.optionInfo}>
-                                                    <Ionicons
-                                                        name={option.icon as any}
-                                                        size={20}
-                                                        color={colors.icon}
-                                                    />
-                                                    <Text style={[styles.optionLabel, { color: colors.text }]}>
-                                                        {option.label}
-                                                    </Text>
-                                                </View>
-                                                <View
-                                                    style={[styles.radio,
-                                                    {
-                                                        borderColor:
-                                                            theme === option.value ? colors.primary : colors.border
-                                                    },
-                                                    ]}
-                                                >
-                                                    {theme === option.value && (
-                                                        <View
-                                                            style={[
-                                                                styles.radioInner,
-                                                                { backgroundColor: colors.primary },
-                                                            ]}
-                                                        />
-                                                    )}
-                                                </View>
-                                            </TouchableOpacity>
-                                        ))
-                                    )}
-
-                                    {section.key === "notificaciones" && (
-                                        <>
-                                            <View style={styles.optionRow}>
-                                                <View style={styles.optionInfo}>
-                                                    <Ionicons
-                                                        name={notificationsEnabled ? "notifications-outline" : "notifications-off-outline"}
-                                                        size={20}
-                                                        color={colors.icon}
-                                                    />
-                                                    <Text style={[styles.optionLabel, { color: colors.text }]}>
-                                                        Habilitar notificaciones
-                                                    </Text>
-                                                </View>
-                                                <Switch
-                                                    value={notificationsEnabled}
-                                                    onValueChange={handleToggleNotifications}
-                                                    trackColor={{ false: colors.border, true: colors.primary }}
-                                                    thumbColor="#fff"
-                                                />
-                                            </View>
-                                            <View style={styles.optionRow}>
-                                                <View style={styles.optionInfo}>
-                                                    <Ionicons
-                                                        name={mentionsTeachersOnly ? "school-outline" : "school"}
-                                                        size={20}
-                                                        color={colors.icon}
-                                                    />
-                                                    <Text
-                                                        style={[styles.optionLabel, styles.longOptionLabel, { color: colors.text }]}
-                                                        numberOfLines={2}
-                                                    >
-                                                        Solo menciones del profesorado
-                                                    </Text>
-                                                </View>
-                                                <Switch
-                                                    value={mentionsTeachersOnly}
-                                                    onValueChange={handleToggleTeacherMentions}
-                                                    trackColor={{ false: colors.border, true: colors.primary }}
-                                                    thumbColor="#fff"
-                                                    style={styles.optionSwitch}
-                                                />
-                                            </View>
-                                        </>
-                                    )}
-
-                                    {section.key === "cuenta" && (
-                                        <View style={styles.optionContent}>
-                                            <View style={styles.gradeSection}>
-                                                <TouchableOpacity
-                                                    style={[styles.optionRow, styles.gradeDisplayRow]}
-                                                    onPress={handleStartEditGrade}
-                                                    activeOpacity={0.7}
-                                                >
-                                                    <View style={styles.optionInfo}>
-                                                        <Ionicons name="school-outline" size={20} color={colors.icon} />
-                                                        <Text style={[styles.optionLabel, { color: colors.text }]}>
-                                                            Curso
-                                                        </Text>
-                                                    </View>
-                                                    <View style={styles.gradeRight}>
-                                                        <Text style={[styles.gradeValue, { color: colors.textSecondary }]} numberOfLines={1}>
-                                                            {grade || "Sin definir"}
-                                                        </Text>
-                                                        <View style={[styles.editBtn, { borderColor: colors.primary }]}>
-                                                            <Ionicons name="pencil-outline" size={14} color={colors.primary} />
-                                                            <Text style={[styles.editBtnText, { color: colors.primary }]}>Editar</Text>
-                                                        </View>
-                                                    </View>
-                                                </TouchableOpacity>
-
-                                                {editingGrade && (
-                                                    <>
-                                                        <TextInput
-                                                            value={draftGrade}
-                                                            onChangeText={setDraftGrade}
-                                                            placeholder="Ej: 1 DAM"
-                                                            placeholderTextColor={colors.placeholder}
-                                                            style={[
-                                                                styles.gradeInput,
-                                                                {
-                                                                    color: colors.text,
-                                                                    borderColor: colors.border,
-                                                                    backgroundColor: colors.surface,
-                                                                },
-                                                            ]}
-                                                            maxLength={40}
-                                                            autoFocus
-                                                        />
-                                                        <View style={styles.gradeActions}>
-                                                            <Button
-                                                                title="Cancelar"
-                                                                onPress={handleCancelEditGrade}
-                                                                variant="outline"
-                                                                style={{ flex: 1 }}
-                                                            />
-                                                            <Button
-                                                                title="Guardar curso"
-                                                                onPress={handleSaveGrade}
-                                                                loading={savingGrade}
-                                                                variant="outline"
-                                                                style={{ flex: 1 }}
-                                                            />
-                                                        </View>
-                                                    </>
-                                                )}
-                                            </View>
-                                            <Button
-                                                title="Cambiar foto de perfil"
-                                                onPress={handleChangeProfilePhoto}
-                                                variant="outline"
-                                                fullWidth
+                        <AccordionSection
+                            key={section.key}
+                            section={section}
+                            isExpanded={expandedSection === section.key}
+                            onPress={() => handlePressSection(section.key)}
+                            showDivider={index < SETTINGS_SECTIONS.length - 1}
+                        >
+                            {section.key === "tema" && (
+                                THEME_OPTIONS.map((option) => (
+                                    <TouchableOpacity
+                                        key={option.value}
+                                        style={styles.optionRow}
+                                        onPress={() => setTheme(option.value)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View style={styles.optionInfo}>
+                                            <Ionicons
+                                                name={option.icon as any}
+                                                size={20}
+                                                color={colors.icon}
                                             />
+                                            <Text style={[styles.optionLabel, { color: colors.text }]}>
+                                                {option.label}
+                                            </Text>
                                         </View>
-                                    )}
+                                        <View
+                                            style={[
+                                                styles.radio,
+                                                { borderColor: theme === option.value ? colors.primary : colors.border },
+                                            ]}
+                                        >
+                                            {theme === option.value && (
+                                                <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                ))
+                            )}
+
+                            {section.key === "notificaciones" && (
+                                <>
+                                    <View style={styles.optionRow}>
+                                        <View style={styles.optionInfo}>
+                                            <Ionicons
+                                                name={notificationsEnabled ? "notifications-outline" : "notifications-off-outline"}
+                                                size={20}
+                                                color={colors.icon}
+                                            />
+                                            <Text style={[styles.optionLabel, { color: colors.text }]}>
+                                                Habilitar notificaciones
+                                            </Text>
+                                        </View>
+                                        <Switch
+                                            value={notificationsEnabled}
+                                            onValueChange={handleToggleNotifications}
+                                            trackColor={{ false: colors.border, true: colors.primary }}
+                                            thumbColor="#fff"
+                                        />
+                                    </View>
+                                    <View style={styles.optionRow}>
+                                        <View style={styles.optionInfo}>
+                                            <Ionicons
+                                                name={mentionsTeachersOnly ? "school-outline" : "school"}
+                                                size={20}
+                                                color={colors.icon}
+                                            />
+                                            <Text
+                                                style={[styles.optionLabel, styles.longOptionLabel, { color: colors.text }]}
+                                                numberOfLines={2}
+                                            >
+                                                Solo menciones del profesorado
+                                            </Text>
+                                        </View>
+                                        <Switch
+                                            value={mentionsTeachersOnly}
+                                            onValueChange={handleToggleTeacherMentions}
+                                            trackColor={{ false: colors.border, true: colors.primary }}
+                                            thumbColor="#fff"
+                                            style={styles.optionSwitch}
+                                        />
+                                    </View>
+                                </>
+                            )}
+
+                            {section.key === "cuenta" && (
+                                <View style={styles.optionContent}>
+                                    <View style={styles.gradeSection}>
+                                        <TouchableOpacity
+                                            style={[styles.optionRow, styles.gradeDisplayRow]}
+                                            onPress={handleStartEditGrade}
+                                            activeOpacity={0.7}
+                                        >
+                                            <View style={styles.optionInfo}>
+                                                <Ionicons name="school-outline" size={20} color={colors.icon} />
+                                                <Text style={[styles.optionLabel, { color: colors.text }]}>
+                                                    Curso
+                                                </Text>
+                                            </View>
+                                            <View style={styles.gradeRight}>
+                                                <Text style={[styles.gradeValue, { color: colors.textSecondary }]} numberOfLines={1}>
+                                                    {grade || "Sin definir"}
+                                                </Text>
+                                                <View style={[styles.editBtn, { borderColor: colors.primary }]}>
+                                                    <Ionicons name="pencil-outline" size={14} color={colors.primary} />
+                                                    <Text style={[styles.editBtnText, { color: colors.primary }]}>Editar</Text>
+                                                </View>
+                                            </View>
+                                        </TouchableOpacity>
+
+                                        {editingGrade && (
+                                            <>
+                                                <TextInput
+                                                    value={draftGrade}
+                                                    onChangeText={setDraftGrade}
+                                                    placeholder="Ej: 1 DAM"
+                                                    placeholderTextColor={colors.placeholder}
+                                                    style={[
+                                                        styles.gradeInput,
+                                                        {
+                                                            color: colors.text,
+                                                            borderColor: colors.border,
+                                                            backgroundColor: colors.surface,
+                                                        },
+                                                    ]}
+                                                    maxLength={40}
+                                                    autoFocus
+                                                />
+                                                <View style={styles.gradeActions}>
+                                                    <Button
+                                                        title="Cancelar"
+                                                        onPress={handleCancelEditGrade}
+                                                        variant="outline"
+                                                        style={{ flex: 1 }}
+                                                    />
+                                                    <Button
+                                                        title="Guardar curso"
+                                                        onPress={handleSaveGrade}
+                                                        loading={savingGrade}
+                                                        variant="outline"
+                                                        style={{ flex: 1 }}
+                                                    />
+                                                </View>
+                                            </>
+                                        )}
+                                    </View>
+                                    <Button
+                                        title="Cambiar foto de perfil"
+                                        onPress={handleChangeProfilePhoto}
+                                        variant="outline"
+                                        fullWidth
+                                    />
                                 </View>
                             )}
-                        </View>
+                        </AccordionSection>
                     ))}
                 </Card>
             </View>
