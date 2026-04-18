@@ -61,6 +61,8 @@
     },
     "extra": {
       "router": {},
+      "supabaseUrl": "$SUPABASE_URL",
+      "supabaseKey": "$SUPABASE_KEY",
       "eas": {
         "projectId": "c7ac8612-85a4-4642-b33f-1c98a8999d14"
       }
