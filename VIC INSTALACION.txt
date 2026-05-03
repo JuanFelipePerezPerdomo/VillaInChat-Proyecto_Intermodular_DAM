@@ -1,0 +1,31 @@
+MANUAL DE INSTALACIÓN - VILLAINCHAT
+
+1. Requisitos Previos
+Para desarrolladores que deseen ejecutar el código fuente:
+- Node.js: Versión LTS recomendada.
+- Terminal: CMD, PowerShell o terminal de VS Code.
+- Dependencias: Ejecute 'npm install' en la raíz del proyecto.
+
+2. Abrir en el Navegador (Web)
+Ideal para pruebas rápidas desde el ordenador.
+- Comando: npx expo start --web
+- Acceso directo web: https://Villa-in-chat.vercel.app
+
+3. Ejecutar con Expo Go (Móvil)
+Para probar en dispositivos físicos sin instalar la APK:
+1. Instale la app Expo Go (disponible en Play Store y App Store).
+2. En su PC, ejecute el comando:
+   npx expo start --tunnel
+3. Escanee el código QR que aparecerá en pantalla con su móvil.
+Nota: El modo tunnel asegura la conexión incluso en redes WiFi diferentes.
+
+4. Descarga e Instalación de APK
+Si desea instalar la aplicación de forma permanente en un dispositivo Android:
+- Enlace de descarga directa: https://drive.google.com/file/d/1_afnPhfHcjCdHwaZylu92zBZKYv7VrbN/view?usp=sharing
+
+Para generar una nueva APK (Desarrolladores):
+- Instalar EAS CLI: npm install -g eas-cli
+- Iniciar sesión: eas login
+- Ejecutar build: eas build -p android --profile preview
+
+Asegúrese de contar con su propio archivo google-services.json para que los servicios de Firebase funcionen correctamente.
